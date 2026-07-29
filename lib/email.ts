@@ -1,17 +1,46 @@
 import { Resend } from "resend";
+import {
+  SITE_NAME,
+  CONTACT_EMAIL_DEFAULT,
+  LOGO_WITH_BACKGROUND,
+} from "lib/constants";
+import { getBaseUrl } from "lib/utils";
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is not set");
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+/** Public contact address (shown on site / reply-to context) */
+const contactEmail =
+  process.env.CONTACT_EMAIL ||
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL ||
+  CONTACT_EMAIL_DEFAULT;
+
+/**
+ * Where Resend actually delivers notifications.
+ * Without a verified domain, Resend only allows sending TO the account email.
+ * Set RESEND_TO_EMAIL to that address (e.g. avoex.contact@gmail.com) while testing.
+ */
+const notificationTo =
+  process.env.RESEND_TO_EMAIL || contactEmail;
+
+/**
+ * From address. Without a verified domain use onboarding@resend.dev.
+ * After verifying a domain: PaperOK <noreply@yourdomain.com>
+ */
+const fromAddress =
+  process.env.RESEND_FROM_EMAIL || "PaperOK <onboarding@resend.dev>";
+
+const siteName = SITE_NAME;
+const siteUrl = getBaseUrl();
+const logoUrl = `${siteUrl}${LOGO_WITH_BACKGROUND}`;
+
+function emailLogoHtml() {
+  return `
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="${logoUrl}" alt="${siteName}" width="220" height="106" style="max-width:220px;height:auto;border:0;" />
+    </div>
+  `;
 }
-
-if (!process.env.CONTACT_EMAIL) {
-  throw new Error("CONTACT_EMAIL is not set");
-}
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const contactEmail = process.env.CONTACT_EMAIL;
-const siteName = process.env.SITE_NAME || "Ecommerce Store";
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export interface ContactFormData {
   name: string;
@@ -19,6 +48,16 @@ export interface ContactFormData {
   phone?: string;
   message: string;
   subject?: string;
+}
+
+export interface BusinessInquiryData {
+  name: string;
+  company?: string;
+  email: string;
+  phone: string;
+  productType: string;
+  quantity?: string;
+  message: string;
 }
 
 export interface OrderNotificationData {
@@ -38,17 +77,29 @@ export interface OrderNotificationData {
   comment?: string;
 }
 
+type SendResult = { success: true } | { success: false; error: string };
+
+function ensureResend(): Resend {
+  if (!resend) {
+    throw new Error("RESEND_API_KEY is not set");
+  }
+  return resend;
+}
+
 /**
  * Send email notification for contact form submission
  */
-export async function sendContactFormEmail(data: ContactFormData) {
+export async function sendContactFormEmail(
+  data: ContactFormData,
+): Promise<SendResult> {
   try {
-    const { error } = await resend.emails.send({
-      from: `Contact Form <noreply@${getDomainFromEmail(contactEmail)}>`,
-      to: [contactEmail],
+    const { error } = await ensureResend().emails.send({
+      from: fromAddress,
+      to: [notificationTo],
       replyTo: data.email,
       subject: data.subject || `New Contact Form Submission from ${data.name}`,
       html: `
+        ${emailLogoHtml()}
         <h2>New Contact Form Submission</h2>
         <p><strong>Name:</strong> ${escapeHtml(data.name)}</p>
         <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
@@ -58,6 +109,11 @@ export async function sendContactFormEmail(data: ContactFormData) {
         <p>${escapeHtml(data.message).replace(/\n/g, "<br>")}</p>
         <hr>
         <p><small>This email was sent from the contact form on ${siteName}</small></p>
+        ${
+          notificationTo !== contactEmail
+            ? `<p><small>Intended inbox: ${escapeHtml(contactEmail)}</small></p>`
+            : ""
+        }
       `,
       text: `
 New Contact Form Submission
@@ -75,137 +131,166 @@ This email was sent from the contact form on ${siteName}
     });
 
     if (error) {
-      console.error("Error sending contact form email:", error);
-      throw error;
+      console.warn("Contact form email not sent:", error.message);
+      return { success: false, error: error.message };
     }
 
     return { success: true };
-  } catch (error) {
-    console.error("Failed to send contact form email:", error);
-    throw error;
+  } catch (error: any) {
+    const message = error?.message || "Failed to send contact form email";
+    console.warn("Contact form email not sent:", message);
+    return { success: false, error: message };
   }
 }
 
 /**
- * Send email notification when a new order is created
+ * Send email notification for business inquiry form submission
  */
-export async function sendNewOrderNotification(data: OrderNotificationData) {
+export async function sendBusinessInquiryEmail(
+  data: BusinessInquiryData,
+): Promise<SendResult> {
+  try {
+    const { error } = await ensureResend().emails.send({
+      from: fromAddress,
+      to: [notificationTo],
+      replyTo: data.email,
+      subject: `Бизнес запитване от ${data.name}${data.company ? ` (${data.company})` : ""}`,
+      html: `
+        ${emailLogoHtml()}
+        <h2>Ново бизнес запитване</h2>
+        <p><strong>Име:</strong> ${escapeHtml(data.name)}</p>
+        ${data.company ? `<p><strong>Фирма:</strong> ${escapeHtml(data.company)}</p>` : ""}
+        <p><strong>Имейл:</strong> ${escapeHtml(data.email)}</p>
+        <p><strong>Телефон:</strong> ${escapeHtml(data.phone)}</p>
+        <p><strong>Вид продукт:</strong> ${escapeHtml(data.productType)}</p>
+        ${data.quantity ? `<p><strong>Количество:</strong> ${escapeHtml(data.quantity)}</p>` : ""}
+        <p><strong>Съобщение:</strong></p>
+        <p>${escapeHtml(data.message).replace(/\n/g, "<br>")}</p>
+        <hr>
+        <p><small>Този имейл е изпратен от формата за бизнес запитвания на ${siteName}</small></p>
+      `,
+      text: `
+Ново бизнес запитване
+
+Име: ${data.name}
+${data.company ? `Фирма: ${data.company}\n` : ""}
+Имейл: ${data.email}
+Телефон: ${data.phone}
+Вид продукт: ${data.productType}
+${data.quantity ? `Количество: ${data.quantity}\n` : ""}
+Съобщение:
+${data.message}
+
+---
+Този имейл е изпратен от формата за бизнес запитвания на ${siteName}
+      `,
+    });
+
+    if (error) {
+      console.warn("Business inquiry email not sent:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    const message = error?.message || "Failed to send business inquiry email";
+    console.warn("Business inquiry email not sent:", message);
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Send email notification when a new order is created.
+ * Never throws — checkout must succeed even if email fails.
+ */
+export async function sendNewOrderNotification(
+  data: OrderNotificationData,
+): Promise<SendResult> {
   try {
     const productsList = data.products
       .map(
         (product) =>
-          `  • ${escapeHtml(product.name)} - ${product.quantity}x $${product.price.toFixed(2)} = $${(product.price * product.quantity).toFixed(2)}`
+          `  • ${escapeHtml(product.name)} - ${product.quantity}x ${product.price.toFixed(2)} лв = ${(product.price * product.quantity).toFixed(2)} лв`,
       )
       .join("\n");
 
     const productsListHtml = data.products
       .map(
         (product) =>
-          `<li>${escapeHtml(product.name)} - ${product.quantity}x $${product.price.toFixed(2)} = $${(product.price * product.quantity).toFixed(2)}</li>`
+          `<li>${escapeHtml(product.name)} - ${product.quantity}x ${product.price.toFixed(2)} лв = ${(product.price * product.quantity).toFixed(2)} лв</li>`,
       )
       .join("");
 
-    const { data: emailData, error } = await resend.emails.send({
-      from: `New Order <noreply@${getDomainFromEmail(contactEmail)}>`,
-      to: [contactEmail],
+    const { data: emailData, error } = await ensureResend().emails.send({
+      from: fromAddress,
+      to: [notificationTo],
       replyTo: data.customerEmail,
-      subject: `New Order #${data.orderId.substring(0, 8)} - ${siteName}`,
+      subject: `Нова поръчка #${data.orderId.substring(0, 8)} - ${siteName}`,
       html: `
-        <h2>New Order Received</h2>
-        <p><strong>Order ID:</strong> ${escapeHtml(data.orderId)}</p>
-        <p><strong>Total Price:</strong> $${data.totalPrice.toFixed(2)}</p>
+        ${emailLogoHtml()}
+        <h2>Нова поръчка</h2>
+        <p><strong>Номер:</strong> ${escapeHtml(data.orderId)}</p>
+        <p><strong>Обща сума:</strong> ${data.totalPrice.toFixed(2)} лв</p>
         
-        <h3>Customer Information</h3>
-        <p><strong>Name:</strong> ${escapeHtml(data.customerName)}</p>
-        <p><strong>Email:</strong> ${escapeHtml(data.customerEmail)}</p>
-        ${data.customerPhone ? `<p><strong>Phone:</strong> ${escapeHtml(data.customerPhone)}</p>` : ""}
-        <p><strong>Address:</strong> ${escapeHtml(data.customerAddress).replace(/\n/g, "<br>")}</p>
-        <p><strong>Payment Method:</strong> ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}</p>
+        <h3>Клиент</h3>
+        <p><strong>Име:</strong> ${escapeHtml(data.customerName)}</p>
+        <p><strong>Имейл:</strong> ${escapeHtml(data.customerEmail)}</p>
+        ${data.customerPhone ? `<p><strong>Телефон:</strong> ${escapeHtml(data.customerPhone)}</p>` : ""}
+        <p><strong>Адрес:</strong> ${escapeHtml(data.customerAddress).replace(/\n/g, "<br>")}</p>
+        <p><strong>Плащане:</strong> ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}</p>
         
-        <h3>Order Items</h3>
+        <h3>Артикули</h3>
         <ul>
           ${productsListHtml}
         </ul>
         
-        ${data.comment ? `<h3>Customer Comment</h3><p>${escapeHtml(data.comment).replace(/\n/g, "<br>")}</p>` : ""}
+        ${data.comment ? `<h3>Коментар</h3><p>${escapeHtml(data.comment).replace(/\n/g, "<br>")}</p>` : ""}
         
         <hr>
-        <p><small>This email was sent automatically when a new order was placed on ${siteName}</small></p>
-        <p><small>View order: ${siteUrl}/admin/orders/${data.orderId}</small></p>
+        <p><small>Автоматично известие от ${siteName}</small></p>
+        <p><small>Админ: ${siteUrl}/admin/orders/${data.orderId}</small></p>
       `,
       text: `
-New Order Received
+Нова поръчка
 
-Order ID: ${data.orderId}
-Total Price: $${data.totalPrice.toFixed(2)}
+Номер: ${data.orderId}
+Обща сума: ${data.totalPrice.toFixed(2)} лв
 
-Customer Information:
-Name: ${data.customerName}
-Email: ${data.customerEmail}
-${data.customerPhone ? `Phone: ${data.customerPhone}\n` : ""}
-Address: ${data.customerAddress}
-Payment Method: ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}
+Клиент:
+Име: ${data.customerName}
+Имейл: ${data.customerEmail}
+${data.customerPhone ? `Телефон: ${data.customerPhone}\n` : ""}
+Адрес: ${data.customerAddress}
+Плащане: ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}
 
-Order Items:
+Артикули:
 ${productsList}
 
-${data.comment ? `Customer Comment:\n${data.comment}\n` : ""}
+${data.comment ? `Коментар:\n${data.comment}\n` : ""}
 
 ---
-This email was sent automatically when a new order was placed on ${siteName}
-View order: ${siteUrl}/admin/orders/${data.orderId}
+Автоматично известие от ${siteName}
+Админ: ${siteUrl}/admin/orders/${data.orderId}
       `,
     });
 
     if (error) {
-      const errorDetails = {
-        error,
-        message: error.message,
-        name: error.name,
-        statusCode: (error as any).statusCode,
-        response: (error as any).response,
-      };
-      console.error("Error sending new order notification email:", errorDetails);
-      
-      // Re-throw with more details
-      const enhancedError = new Error(
-        error.message || "Failed to send order notification email"
-      );
-      (enhancedError as any).statusCode = (error as any).statusCode;
-      (enhancedError as any).originalError = error;
-      throw enhancedError;
+      console.warn("Order notification email not sent:", error.message);
+      return { success: false, error: error.message };
     }
 
     if (!emailData) {
-      // Email sent but no data returned from Resend
+      return { success: false, error: "No email data returned from Resend" };
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error("Failed to send new order notification email:", {
-      error,
-      message: error?.message,
-      statusCode: error?.statusCode,
-      stack: error?.stack,
-    });
-    throw error;
+    const message = error?.message || "Failed to send order notification email";
+    console.warn("Order notification email not sent:", message);
+    return { success: false, error: message };
   }
 }
 
-/**
- * Helper function to get the sending domain for Resend
- * Resend requires verified domains. Use resend.dev for testing or your verified domain for production
- */
-function getDomainFromEmail(email: string): string {
-  // Always use resend.dev as the sending domain
-  // If you have a verified custom domain in Resend, you can use it here instead
-  // For example: return "yourdomain.com" if verified
-  return "resend.dev";
-}
-
-/**
- * Helper function to escape HTML to prevent XSS
- */
 function escapeHtml(text: string): string {
   const map: Record<string, string> = {
     "&": "&amp;",

@@ -1,15 +1,14 @@
 import CartModal from "components/cart/modal";
 import LogoSquare from "components/logo-square";
-import { getCollections } from "lib/supabase/products";
+import { getStorefrontCollections } from "lib/supabase/products";
 import Link from "next/link";
 import { Suspense } from "react";
 import MobileMenu from "./mobile-menu";
 import Search, { SearchSkeleton } from "./search";
-
-const SITE_NAME = process.env.SITE_NAME || "Ecommerce Store";
+import { SITE_NAME } from "lib/constants";
 
 export async function Navbar() {
-  const collections = await getCollections();
+  const collections = await getStorefrontCollections();
   const menu = collections.map(c => ({ title: c.title, path: `/search/${c.handle}` }));
 
   return (
@@ -25,18 +24,16 @@ export async function Navbar() {
             href="/"
             prefetch={true}
             className="mr-2 flex w-full items-center justify-center md:w-auto lg:mr-6"
+            aria-label={SITE_NAME}
           >
             <LogoSquare />
-            <div className="ml-2 flex-none text-sm font-medium uppercase md:hidden lg:block">
-              {SITE_NAME}
-            </div>
           </Link>
           <ul className="hidden gap-6 text-sm md:flex md:items-center">
             <li>
               <Link
                 href="/products"
                 prefetch={true}
-                className="text-neutral-500 underline-offset-4 hover:text-black hover:underline dark:text-neutral-400 dark:hover:text-neutral-300"
+                className="text-paper-muted underline-offset-4 hover:text-paper-heading hover:underline"
               >
                 Продукти
               </Link>
@@ -47,7 +44,7 @@ export async function Navbar() {
                   <Link
                     href={item.path}
                     prefetch={true}
-                    className="text-neutral-500 underline-offset-4 hover:text-black hover:underline dark:text-neutral-400 dark:hover:text-neutral-300"
+                    className="text-paper-muted underline-offset-4 hover:text-paper-heading hover:underline"
                   >
                     {item.title}
                   </Link>
@@ -58,7 +55,7 @@ export async function Navbar() {
               <Link
                 href="/contact"
                 prefetch={true}
-                className="text-neutral-500 underline-offset-4 hover:text-black hover:underline dark:text-neutral-400 dark:hover:text-neutral-300"
+                className="text-paper-muted underline-offset-4 hover:text-paper-heading hover:underline"
               >
                 Контакти
               </Link>

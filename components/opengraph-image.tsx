@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import LogoIcon from "./icons/logo";
+import { SITE_NAME } from "lib/constants";
 import { join } from "path";
 import { readFile } from "fs/promises";
 
@@ -11,35 +11,66 @@ export default async function OpengraphImage(
   props?: Props,
 ): Promise<ImageResponse> {
   const { title } = {
-    ...{
-      title: process.env.SITE_NAME,
-    },
+    title: SITE_NAME,
     ...props,
   };
 
-  const file = await readFile(join(process.cwd(), "./fonts/Inter-Bold.ttf"));
-  const font = Uint8Array.from(file).buffer;
+  const [fontFile, logoFile] = await Promise.all([
+    readFile(join(process.cwd(), "./fonts/Inter-Bold.ttf")).catch(() => null),
+    readFile(join(process.cwd(), "public", "logo.jpeg")),
+  ]);
+
+  const logoSrc = `data:image/jpeg;base64,${logoFile.toString("base64")}`;
 
   return new ImageResponse(
     (
-      <div tw="flex h-full w-full flex-col items-center justify-center bg-black">
-        <div tw="flex flex-none items-center justify-center border border-neutral-700 h-[160px] w-[160px] rounded-3xl">
-          <LogoIcon width="64" height="58" fill="white" />
-        </div>
-        <p tw="mt-12 text-6xl font-bold text-white">{title}</p>
+      <div
+        style={{
+          display: "flex",
+          height: "100%",
+          width: "100%",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#F8F5EF",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={logoSrc}
+          alt={SITE_NAME}
+          width={520}
+          height={252}
+          style={{ objectFit: "contain" }}
+        />
+        {title !== SITE_NAME ? (
+          <p
+            style={{
+              marginTop: 40,
+              fontSize: 48,
+              fontWeight: 700,
+              color: "#4A3428",
+              fontFamily: fontFile ? "Inter" : "sans-serif",
+            }}
+          >
+            {title}
+          </p>
+        ) : null}
       </div>
     ),
     {
       width: 1200,
       height: 630,
-      fonts: [
-        {
-          name: "Inter",
-          data: font,
-          style: "normal",
-          weight: 700,
-        },
-      ],
+      fonts: fontFile
+        ? [
+            {
+              name: "Inter",
+              data: Uint8Array.from(fontFile).buffer,
+              style: "normal" as const,
+              weight: 700 as const,
+            },
+          ]
+        : [],
     },
   );
 }

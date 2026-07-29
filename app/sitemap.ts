@@ -1,4 +1,4 @@
-import { getCollections, getProducts } from "lib/supabase/products";
+import { getStorefrontCollections, getProducts } from "lib/supabase/products";
 import { baseUrl } from "lib/utils";
 import { MetadataRoute } from "next";
 
@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date().toISOString(),
   }));
 
-  const collectionsPromise = getCollections().then((collections) =>
+  const collectionsPromise = getStorefrontCollections().then((collections) =>
     collections.map((collection) => ({
       url: `${baseUrl}/search/${collection.handle}`,
       lastModified: collection.updatedAt,

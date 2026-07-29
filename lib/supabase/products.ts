@@ -1,6 +1,8 @@
 import type { Product, Collection } from "lib/types";
+import { filterCategoriesWithProducts } from "lib/category-tree";
+import { isProductPlantable } from "lib/product-plantable";
 import { cache } from "react";
-import { createServerClient } from "./server";
+import { createServiceClient } from "./service";
 
 // Helper to check if error is React.postpone()
 function isReactPostpone(error: unknown): boolean {
@@ -25,7 +27,7 @@ export async function getProducts(params?: {
   onSaleOnly?: boolean;
 }): Promise<Product[]> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     let query = supabase
       .from("products")
@@ -133,7 +135,7 @@ export async function getProducts(params?: {
 // Cache getProduct to prevent duplicate calls in the same request
 export const getProduct = cache(async (handle: string): Promise<Product | null> => {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     // Trim the handle to match database (in case there are trailing spaces)
     const trimmedHandle = handle.trim();
@@ -163,7 +165,7 @@ export const getProduct = cache(async (handle: string): Promise<Product | null> 
 
 export async function getCollections(): Promise<Collection[]> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { data, error } = await supabase
       .from("collections")
@@ -172,7 +174,6 @@ export async function getCollections(): Promise<Collection[]> {
       .order("title", { ascending: true });
 
     if (error) {
-      // If table doesn't exist or other error, return empty array
       console.error("Error fetching collections:", error.message || error);
       return [];
     }
@@ -186,22 +187,70 @@ export async function getCollections(): Promise<Collection[]> {
       handle: item.handle,
       title: item.title,
       description: item.description || undefined,
+      parentId: item.parent_id || null,
+      position: item.position ?? 0,
       updatedAt: item.updated_at || new Date().toISOString(),
     }));
   } catch (error) {
-    // Don't catch React.postpone() - let it propagate for PPR
     if (isReactPostpone(error)) {
       throw error;
     }
-    // Catch any unexpected errors and return empty array
     console.error("Error in getCollections:", error);
     return [];
   }
 }
 
+/**
+ * Storefront categories only — hides empty categories (no products
+ * on the category itself and none in any subcategory).
+ */
+export async function getStorefrontCollections(): Promise<Collection[]> {
+  try {
+    const collections = await getCollections();
+    if (collections.length === 0) return [];
+
+    const supabase = createServiceClient();
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("category")
+      .eq("available", true)
+      .not("category", "is", null);
+
+    if (error) {
+      console.error("Error fetching product categories:", error);
+      return collections;
+    }
+
+    const handlesWithProducts = new Set<string>();
+    for (const p of products || []) {
+      if (p.category) handlesWithProducts.add(p.category);
+    }
+
+    const flat = collections.map((c) => ({
+      id: c.id,
+      handle: c.handle,
+      title: c.title,
+      description: c.description,
+      position: c.position ?? 0,
+      parent_id: c.parentId ?? null,
+    }));
+
+    const visible = filterCategoriesWithProducts(flat, handlesWithProducts);
+    const visibleIds = new Set(visible.map((v) => v.id));
+
+    return collections.filter((c) => visibleIds.has(c.id));
+  } catch (error) {
+    if (isReactPostpone(error)) {
+      throw error;
+    }
+    console.error("Error in getStorefrontCollections:", error);
+    return getCollections();
+  }
+}
+
 export async function getCollectionProducts(handle: string): Promise<Product[]> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     // Verify collection exists
     const { data: collection, error } = await supabase
@@ -227,6 +276,7 @@ export async function getCollectionProducts(handle: string): Promise<Product[]> 
 }
 
 function transformProduct(data: any): Product {
+  const variants = Array.isArray(data.variants) ? data.variants : [];
   return {
     id: data.id,
     handle: data.handle,
@@ -234,13 +284,18 @@ function transformProduct(data: any): Product {
     description: data.description || "",
     featuredImage: data.featured_image || {
       id: "",
-      url: "/placeholder-image.jpg",
+      url: "/placeholder-image.svg",
       altText: data.title,
     },
     images: data.images || [],
     price: data.price,
     compareAtPrice: data.compare_at_price,
     category: data.category,
+    variants,
+    plantable: isProductPlantable({
+      plantable: data.plantable,
+      category: data.category,
+    }),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     available: data.available !== false,

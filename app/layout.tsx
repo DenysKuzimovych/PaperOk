@@ -1,23 +1,76 @@
 import { CartProvider } from "components/cart/cart-context";
 import { ConditionalNavbar } from "components/layout/conditional-navbar";
 import { CookieConsent } from "components/cookie-consent";
-import { GeistSans } from "geist/font/sans";
+import {
+  LOGO_WITH_BACKGROUND,
+  LOGO_WITH_BACKGROUND_SIZE,
+  SITE_NAME,
+  SITE_TAGLINE,
+} from "lib/constants";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { baseUrl } from "lib/utils";
 
-const SITE_NAME = process.env.SITE_NAME || "Ecommerce Store";
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: SITE_NAME,
+    default: `${SITE_NAME} — Подаръци, които разцъфват`,
     template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_TAGLINE,
+  keywords: [
+    "семенна хартия",
+    "картички",
+    "подаръци",
+    "еко",
+    "София",
+    "България",
+    "PaperOK",
+  ],
+  icons: {
+    icon: [{ url: LOGO_WITH_BACKGROUND, type: "image/jpeg" }],
+    apple: [{ url: LOGO_WITH_BACKGROUND, type: "image/jpeg" }],
+    shortcut: LOGO_WITH_BACKGROUND,
   },
   robots: {
     follow: true,
     index: true,
+  },
+  openGraph: {
+    type: "website",
+    locale: "bg_BG",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — Подаръци, които разцъфват`,
+    description: SITE_TAGLINE,
+    images: [
+      {
+        url: LOGO_WITH_BACKGROUND,
+        width: LOGO_WITH_BACKGROUND_SIZE.width,
+        height: LOGO_WITH_BACKGROUND_SIZE.height,
+        alt: SITE_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — Подаръци, които разцъфват`,
+    description: SITE_TAGLINE,
+    images: [LOGO_WITH_BACKGROUND],
   },
 };
 
@@ -26,12 +79,11 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  // Cart is now loaded from localStorage in CartProvider
-  // No need to fetch from database or pass any props
-
   return (
-    <html lang="bg" className={GeistSans.variable}>
-      <body className={`${GeistSans.className} bg-neutral-50 text-black selection:bg-teal-300 dark:bg-neutral-900 dark:text-white dark:selection:bg-pink-500 dark:selection:text-white`}>
+    <html lang="bg" className={`${cormorant.variable} ${dmSans.variable}`}>
+      <body
+        className={`${dmSans.className} bg-paper-bg text-paper-text antialiased selection:bg-paper-accent-bg selection:text-paper-heading`}
+      >
         <CartProvider>
           <ConditionalNavbar />
           <main suppressHydrationWarning>

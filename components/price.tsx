@@ -14,16 +14,16 @@ const Price = ({
   currencyCode: string;
   currencyCodeClassName?: string;
   showBgn?: boolean;
-} & React.ComponentProps<"p">) => {
+} & React.ComponentProps<"span">) => {
   const eurAmount = parseFloat(amount);
   const bgnAmount = eurAmount * EUR_TO_BGN_RATE;
-  
+
   const formattedEur = new Intl.NumberFormat("bg-BG", {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",
   }).format(eurAmount);
-  
+
   const formattedBgn = new Intl.NumberFormat("bg-BG", {
     style: "currency",
     currency: "BGN",
@@ -31,7 +31,10 @@ const Price = ({
   }).format(bgnAmount);
 
   return (
-    <p suppressHydrationWarning={true} className={clsx("whitespace-nowrap", className)}>
+    <span
+      suppressHydrationWarning={true}
+      className={clsx("inline-block whitespace-nowrap", className)}
+    >
       <span>
         {formattedEur}
         <span className={clsx("ml-1 inline", currencyCodeClassName)}>
@@ -43,7 +46,7 @@ const Price = ({
           ({formattedBgn})
         </span>
       )}
-    </p>
+    </span>
   );
 };
 

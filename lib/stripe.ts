@@ -9,18 +9,25 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-11-20.acacia" as any,
 });
 
-export async function createCheckoutSession(cart: Cart, successUrl: string, cancelUrl: string) {
-  // Ensure currency is always EUR
+export async function createCheckoutSession(
+  cart: Cart,
+  orderId: string,
+  customerEmail: string,
+  successUrl: string,
+  cancelUrl: string,
+) {
   const currency = "eur";
-  
+
   const lineItems = cart.items.map((item) => ({
     price_data: {
-      currency: currency,
+      currency,
       product_data: {
-        name: item.product.title,
+        name: item.variant.title
+          ? `${item.product.title} — ${item.variant.title}`
+          : item.product.title,
         images: item.product.image.url ? [item.product.image.url] : [],
       },
-      unit_amount: Math.round(item.price * 100), // Convert to cents
+      unit_amount: Math.round(item.price * 100),
     },
     quantity: item.quantity,
   }));
@@ -31,13 +38,12 @@ export async function createCheckoutSession(cart: Cart, successUrl: string, canc
     mode: "payment",
     success_url: successUrl,
     cancel_url: cancelUrl,
-    currency: currency, // Explicitly set currency
-    locale: "bg", // Bulgarian language for checkout interface
+    currency,
+    locale: "bg",
+    customer_email: customerEmail,
     metadata: {
-      cartId: cart.id || "",
+      orderId,
     },
-    // Ensure customer email is passed through
-    customer_email: undefined, // Will be collected during checkout
   });
 
   return session;
@@ -45,4 +51,14 @@ export async function createCheckoutSession(cart: Cart, successUrl: string, canc
 
 export async function getSession(sessionId: string) {
   return await stripe.checkout.sessions.retrieve(sessionId);
+}
+
+/** Optional — only needed if you configure a Stripe webhook endpoint. */
+export function constructStripeEvent(
+  payload: string | Buffer,
+  signature: string,
+): Stripe.Event | null {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) return null;
+  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }

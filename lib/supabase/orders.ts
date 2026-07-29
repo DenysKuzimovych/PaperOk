@@ -1,4 +1,5 @@
-import { createServerClient } from "./server";
+import { createServiceClient } from "./service";
+import { sendNewOrderNotification } from "lib/email";
 
 export interface CreateOrderData {
   customer_name: string;
@@ -10,27 +11,52 @@ export interface CreateOrderData {
     name: string;
     price: number;
     quantity: number;
+    variant_name?: string;
   }>;
   total_price: number;
   payment_method: "cash_on_delivery" | "card";
   comment?: string;
+  idempotency_key?: string;
 }
 
+export type OrderStatus =
+  | "new"
+  | "pending_payment"
+  | "confirmed"
+  | "shipped"
+  | "paid"
+  | "completed"
+  | "canceled";
+
 /**
- * Create a new order in the database
+ * Create a new order. Returns existing order if idempotency_key matches.
  */
 export async function createOrder(data: CreateOrderData) {
-  const supabase = await createServerClient();
+  const supabase = createServiceClient();
 
-  // Prepare products as JSONB
+  if (data.idempotency_key) {
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("idempotency_key", data.idempotency_key)
+      .maybeSingle();
+
+    if (existing) {
+      return existing;
+    }
+  }
+
   const productsJson = data.products.map((product) => ({
     id: product.id,
     name: product.name,
     price: product.price,
     quantity: product.quantity,
+    ...(product.variant_name ? { variant_name: product.variant_name } : {}),
   }));
 
-  // Insert order into database
+  const initialStatus =
+    data.payment_method === "card" ? "pending_payment" : "new";
+
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
@@ -41,25 +67,35 @@ export async function createOrder(data: CreateOrderData) {
       products: productsJson,
       total_price: data.total_price,
       payment_method: data.payment_method,
-      status: "new",
+      status: initialStatus,
       comment: data.comment || null,
+      idempotency_key: data.idempotency_key || null,
     })
     .select()
     .single();
 
-  if (error || !order) {
+  if (error) {
+    if (error.code === "23505" && data.idempotency_key) {
+      const { data: existing } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("idempotency_key", data.idempotency_key)
+        .single();
+      if (existing) return existing;
+    }
     console.error("Error creating order:", error);
+    throw new Error("Failed to create order");
+  }
+
+  if (!order) {
     throw new Error("Failed to create order");
   }
 
   return order;
 }
 
-/**
- * Get order by ID
- */
 export async function getOrderById(orderId: string) {
-  const supabase = await createServerClient();
+  const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from("orders")
@@ -74,11 +110,156 @@ export async function getOrderById(orderId: string) {
   return data;
 }
 
+export async function getOrderByStripeSessionId(sessionId: string) {
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("stripe_session_id", sessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Failed to fetch order");
+  }
+
+  return data;
+}
+
+export async function updateOrderStripeSession(
+  orderId: string,
+  stripeSessionId: string,
+) {
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({
+      stripe_session_id: stripeSessionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Тази поръчка вече има активна сесия за плащане");
+    }
+    throw new Error("Failed to update order with Stripe session");
+  }
+
+  return data;
+}
+
 /**
- * Get all orders (for admin)
+ * Mark order as paid and send notification email exactly once.
  */
+export async function fulfillPaidOrder(orderId: string) {
+  const supabase = createServiceClient();
+
+  const order = await getOrderById(orderId);
+
+  if (order.email_sent_at && order.status === "paid") {
+    return order;
+  }
+
+  const { data: updated, error } = await supabase
+    .from("orders")
+    .update({
+      status: "paid",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .select()
+    .single();
+
+  if (error || !updated) {
+    throw new Error("Failed to update order status");
+  }
+
+  if (!updated.email_sent_at) {
+    const result = await sendNewOrderNotification({
+      orderId: updated.id,
+      customerName: updated.customer_name,
+      customerEmail: updated.customer_email,
+      customerPhone: updated.customer_phone || undefined,
+      customerAddress: updated.customer_address,
+      totalPrice: Number(updated.total_price),
+      paymentMethod: updated.payment_method as "cash_on_delivery" | "card",
+      products: (updated.products as any[]).map((p: any) => ({
+        id: p.id,
+        name: p.variant_name ? `${p.name} (${p.variant_name})` : p.name,
+        price: Number(p.price),
+        quantity: p.quantity,
+      })),
+      comment: updated.comment || undefined,
+    });
+
+    if (!result.success) {
+      console.warn(
+        "Order email skipped/failed (order still fulfilled):",
+        result.error,
+      );
+    }
+
+    await supabase
+      .from("orders")
+      .update({ email_sent_at: new Date().toISOString() })
+      .eq("id", orderId);
+  }
+
+  return updated;
+}
+
+/**
+ * Send notification for COD order exactly once.
+ */
+export async function fulfillCodOrder(orderId: string) {
+  const supabase = createServiceClient();
+  const order = await getOrderById(orderId);
+
+  if (order.email_sent_at) {
+    return order;
+  }
+
+  const result = await sendNewOrderNotification({
+    orderId: order.id,
+    customerName: order.customer_name,
+    customerEmail: order.customer_email,
+    customerPhone: order.customer_phone || undefined,
+    customerAddress: order.customer_address,
+    totalPrice: Number(order.total_price),
+    paymentMethod: "cash_on_delivery",
+    products: (order.products as any[]).map((p: any) => ({
+      id: p.id,
+      name: p.variant_name ? `${p.name} (${p.variant_name})` : p.name,
+      price: Number(p.price),
+      quantity: p.quantity,
+    })),
+    comment: order.comment || undefined,
+  });
+
+  if (!result.success) {
+    console.warn(
+      "COD order email skipped/failed (order still accepted):",
+      result.error,
+    );
+  }
+
+  // Always mark so refresh does not keep retrying Resend
+  const { data } = await supabase
+    .from("orders")
+    .update({ email_sent_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .select()
+    .single();
+
+  return data || order;
+}
+
 export async function getAllOrders() {
-  const supabase = await createServerClient();
+  const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from("orders")
@@ -92,18 +273,12 @@ export async function getAllOrders() {
   return data || [];
 }
 
-/**
- * Update order status
- */
-export async function updateOrderStatus(
-  orderId: string,
-  status: "new" | "confirmed" | "shipped" | "paid" | "completed" | "canceled"
-) {
-  const supabase = await createServerClient();
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+  const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from("orders")
-    .update({ 
+    .update({
       status,
       updated_at: new Date().toISOString(),
     })
@@ -118,9 +293,6 @@ export async function updateOrderStatus(
   return data;
 }
 
-/**
- * Update entire order
- */
 export interface UpdateOrderData {
   customer_name?: string;
   customer_email?: string;
@@ -128,18 +300,14 @@ export interface UpdateOrderData {
   customer_address?: string;
   total_price?: number;
   payment_method?: "cash_on_delivery" | "card";
-  status?: "new" | "confirmed" | "shipped" | "paid" | "completed" | "canceled";
+  status?: OrderStatus;
   comment?: string;
   created_at?: string;
 }
 
-export async function updateOrder(
-  orderId: string,
-  data: UpdateOrderData
-) {
-  const supabase = await createServerClient();
+export async function updateOrder(orderId: string, data: UpdateOrderData) {
+  const supabase = createServiceClient();
 
-  // Always update updated_at when order is modified
   const updateData = {
     ...data,
     updated_at: new Date().toISOString(),

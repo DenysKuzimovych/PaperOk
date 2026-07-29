@@ -3,6 +3,7 @@ import Footer from "components/layout/footer";
 import { Gallery } from "components/product/gallery";
 import { BackButton } from "components/product/back-button";
 import { ProductDescription } from "components/product/product-description";
+import { ProductTabs } from "components/product/product-tabs";
 import { getProduct, getProducts } from "lib/supabase/products";
 import type { Image } from "lib/types";
 import type { Metadata } from "next";
@@ -88,7 +89,7 @@ export default async function ProductPage(props: {
         }}
       />
       <div className="mx-auto max-w-(--breakpoint-2xl) px-4">
-        <div className="flex flex-col rounded-lg border border-neutral-200 bg-white p-8 md:p-12 lg:flex-row lg:gap-8 dark:border-neutral-800 dark:bg-black">
+        <div className="flex flex-col rounded-lg border border-paper-border bg-paper-white p-8 md:p-12 lg:flex-row lg:gap-8">
           <div className="relative h-full w-full basis-full lg:basis-4/6">
             <BackButton />
             <Gallery images={galleryImages} />
@@ -98,6 +99,7 @@ export default async function ProductPage(props: {
             <ProductDescription product={product} />
           </div>
         </div>
+        <ProductTabs product={product} />
         <RelatedProducts category={product.category} currentId={product.id} />
       </div>
       <Footer />

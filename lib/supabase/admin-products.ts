@@ -1,5 +1,5 @@
-import { createServerClient } from "./server";
-import type { Image } from "lib/types";
+import { createServiceClient } from "./service";
+import type { Image, ProductSizeVariant } from "lib/types";
 
 // Helper to check if error is React.postpone()
 function isReactPostpone(error: unknown): boolean {
@@ -21,7 +21,9 @@ export interface CreateProductData {
   images?: Image[];
   category?: string;
   available?: boolean;
+  plantable?: boolean;
   position?: number;
+  variants?: ProductSizeVariant[];
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
@@ -33,7 +35,7 @@ export interface UpdateProductData extends Partial<CreateProductData> {
  */
 export async function getProductOrderCount(productId: string): Promise<number> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     // Query orders where products JSONB array contains this product ID
     const { data, error } = await supabase
@@ -83,7 +85,7 @@ export async function getAllProductsForAdmin(params?: {
   sortOrder?: "asc" | "desc";
 }) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     let query = supabase.from("products").select("*");
 
@@ -115,7 +117,7 @@ export async function getAllProductsForAdmin(params?: {
     const products = data || [];
 
     // Get all orders once to calculate order counts efficiently
-    const supabaseForOrders = await createServerClient();
+    const supabaseForOrders = createServiceClient();
     const { data: ordersData } = await supabaseForOrders
       .from("orders")
       .select("products")
@@ -170,7 +172,7 @@ export async function getAllProductsForAdmin(params?: {
  */
 export async function getProductByIdForAdmin(productId: string) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { data, error } = await supabase
       .from("products")
@@ -199,7 +201,7 @@ export async function getProductByIdForAdmin(productId: string) {
  */
 async function checkHandleExists(handle: string, excludeId?: string): Promise<boolean> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     const trimmedHandle = handle.trim();
     
     let query = supabase
@@ -235,7 +237,7 @@ async function checkHandleExists(handle: string, excludeId?: string): Promise<bo
  */
 export async function createProduct(data: CreateProductData) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const trimmedHandle = data.handle.trim();
     
@@ -245,7 +247,7 @@ export async function createProduct(data: CreateProductData) {
       throw new Error(`Slug "${trimmedHandle}" вече е зает. Моля, изберете друг slug.`);
     }
     
-    const productData = {
+    const productData: Record<string, unknown> = {
       handle: trimmedHandle,
       title: data.title,
       description: data.description || null,
@@ -255,15 +257,27 @@ export async function createProduct(data: CreateProductData) {
       images: data.images || [],
       category: data.category || null,
       available: data.available !== false,
+      plantable: data.plantable !== false,
       position: data.position ?? 0,
+      variants: data.variants || [],
       updated_at: new Date().toISOString(),
     };
 
-    const { data: product, error } = await supabase
+    let { data: product, error } = await supabase
       .from("products")
       .insert(productData)
       .select()
       .single();
+
+    // Fallback if plantable column is not migrated yet
+    if (error?.message?.includes("plantable")) {
+      delete productData.plantable;
+      ({ data: product, error } = await supabase
+        .from("products")
+        .insert(productData)
+        .select()
+        .single());
+    }
 
     if (error) {
       // Check for unique constraint violation
@@ -290,7 +304,7 @@ export async function createProduct(data: CreateProductData) {
  */
 export async function updateProduct(data: UpdateProductData) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const updateData: any = {
       updated_at: new Date().toISOString(),
@@ -315,14 +329,26 @@ export async function updateProduct(data: UpdateProductData) {
     if (data.images !== undefined) updateData.images = data.images || [];
     if (data.category !== undefined) updateData.category = data.category || null;
     if (data.available !== undefined) updateData.available = data.available;
+    if (data.plantable !== undefined) updateData.plantable = data.plantable;
     if (data.position !== undefined) updateData.position = data.position;
+    if (data.variants !== undefined) updateData.variants = data.variants || [];
 
-    const { data: product, error } = await supabase
+    let { data: product, error } = await supabase
       .from("products")
       .update(updateData)
       .eq("id", data.id)
       .select()
       .single();
+
+    if (error?.message?.includes("plantable")) {
+      delete updateData.plantable;
+      ({ data: product, error } = await supabase
+        .from("products")
+        .update(updateData)
+        .eq("id", data.id)
+        .select()
+        .single());
+    }
 
     if (error) {
       // Check for unique constraint violation
@@ -349,7 +375,7 @@ export async function updateProduct(data: UpdateProductData) {
  */
 export async function deleteProduct(productId: string) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { error } = await supabase
       .from("products")

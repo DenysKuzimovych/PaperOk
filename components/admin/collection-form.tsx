@@ -2,21 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createCollectionAction, updateCollectionAction } from "app/admin/collections/actions";
+import {
+  createCollectionAction,
+  updateCollectionAction,
+} from "app/admin/collections/actions";
 import { toast } from "sonner";
+import {
+  buildCategoryTree,
+  flattenCategoryTree,
+  type FlatCategory,
+} from "lib/category-tree";
+import { FieldHint } from "./field-hint";
 
 interface CollectionFormData {
   handle: string;
   title: string;
   description: string;
   position: string;
+  parent_id: string;
 }
 
 interface CollectionFormProps {
   collection?: any;
+  allCollections?: FlatCategory[];
 }
 
-export function CollectionForm({ collection }: CollectionFormProps) {
+export function CollectionForm({
+  collection,
+  allCollections = [],
+}: CollectionFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [handleError, setHandleError] = useState<string | null>(null);
@@ -25,41 +39,42 @@ export function CollectionForm({ collection }: CollectionFormProps) {
     title: collection?.title || "",
     description: collection?.description || "",
     position: collection?.position?.toString() || "0",
+    parent_id: collection?.parent_id || "",
   });
 
-  // Format handle/slug: lowercase, remove spaces, only allow letters, numbers, and hyphens
+  const tree = buildCategoryTree(
+    allCollections.filter((c) => c.id !== collection?.id),
+  );
+  const flatOptions = flattenCategoryTree(tree);
+
   const formatHandle = (value: string): string => {
     return value
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "") // Remove all spaces
-      .replace(/[^a-z0-9-]/g, "") // Remove all non-alphanumeric characters except hyphens
-      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+      .replace(/\s+/g, "")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
   };
 
-  // Generate handle from title
-  const generateHandleFromTitle = (title: string): string => {
-    return formatHandle(title);
-  };
+  const generateHandleFromTitle = (title: string): string =>
+    formatHandle(title);
 
   const handleHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatHandle(e.target.value);
-    setFormData({ ...formData, handle: formatted });
-    // Clear error when user starts typing
-    if (handleError) {
-      setHandleError(null);
-    }
+    setFormData({ ...formData, handle: formatHandle(e.target.value) });
+    if (handleError) setHandleError(null);
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
-    // Auto-generate handle from title if handle is empty
-    if (!formData.handle || formData.handle === formatHandle(collection?.title || "")) {
-      setFormData({ 
-        ...formData, 
+    if (
+      !formData.handle ||
+      formData.handle === formatHandle(collection?.title || "")
+    ) {
+      setFormData({
+        ...formData,
         title: newTitle,
-        handle: generateHandleFromTitle(newTitle)
+        handle: generateHandleFromTitle(newTitle),
       });
     } else {
       setFormData({ ...formData, title: newTitle });
@@ -71,30 +86,38 @@ export function CollectionForm({ collection }: CollectionFormProps) {
     setLoading(true);
 
     try {
-      // Generate handle from title if not provided, and trim to remove any spaces
-      const finalHandle = (formData.handle.trim() || generateHandleFromTitle(formData.title)).trim();
+      const finalHandle = (
+        formData.handle.trim() || generateHandleFromTitle(formData.title)
+      ).trim();
 
       const collectionData = {
         handle: finalHandle,
         title: formData.title,
         description: formData.description.trim() || undefined,
         position: parseInt(formData.position) || 0,
+        parent_id: formData.parent_id || null,
       };
 
       let result;
       if (collection) {
-        result = await updateCollectionAction({ ...collectionData, id: collection.id });
+        result = await updateCollectionAction({
+          ...collectionData,
+          id: collection.id,
+        });
       } else {
         result = await createCollectionAction(collectionData);
       }
 
       if (result.success) {
-        toast.success(collection ? "Колекцията е обновена успешно" : "Колекцията е създадена успешно");
+        toast.success(
+          collection
+            ? "Категорията е обновена успешно"
+            : "Категорията е създадена успешно",
+        );
         router.push("/admin/collections");
         router.refresh();
       } else {
-        const errorMessage = result.error || "Грешка при запазване на колекция";
-        // Check if error is about duplicate handle
+        const errorMessage = result.error || "Грешка при запазване";
         if (errorMessage.includes("Slug") && errorMessage.includes("зает")) {
           setHandleError(errorMessage);
         } else {
@@ -102,14 +125,7 @@ export function CollectionForm({ collection }: CollectionFormProps) {
         }
       }
     } catch (error: any) {
-      console.error("Error saving collection:", error);
-      const errorMessage = error.message || "Грешка при запазване на колекция";
-      // Check if error is about duplicate handle
-      if (errorMessage.includes("Slug") && errorMessage.includes("зает")) {
-        setHandleError(errorMessage);
-      } else {
-        toast.error(errorMessage);
-      }
+      toast.error(error.message || "Грешка при запазване");
     } finally {
       setLoading(false);
     }
@@ -120,27 +136,26 @@ export function CollectionForm({ collection }: CollectionFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Handle (URL slug)
+            Slug (URL)
           </label>
           <input
             type="text"
             value={formData.handle}
             onChange={handleHandleChange}
             className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-              handleError 
-                ? "border-red-500 dark:border-red-500" 
+              handleError
+                ? "border-red-500"
                 : "border-gray-300 dark:border-gray-700"
             }`}
-            placeholder="teniskazelena"
+            placeholder="kartichki-za-povod"
           />
           {handleError ? (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-              {handleError}
-            </p>
+            <p className="mt-1 text-xs text-red-600">{handleError}</p>
           ) : (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Ако не се въведе, ще се генерира автоматично от името. Само малки букви, числа и без разстояния. Пример: /teniskazelena
-            </p>
+            <FieldHint example="za-mama → /products?collection=za-mama">
+              Адресът на категорията в URL. Само латински букви, цифри и тирета.
+              Ако е празно, се генерира автоматично от името.
+            </FieldHint>
           )}
         </div>
 
@@ -159,19 +174,37 @@ export function CollectionForm({ collection }: CollectionFormProps) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Родителска категория
+          </label>
+          <select
+            value={formData.parent_id}
+            onChange={(e) =>
+              setFormData({ ...formData, parent_id: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          >
+            <option value="">— Коренова категория —</option>
+            {flatOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {"—".repeat(opt.depth)} {opt.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Позиция
           </label>
           <input
             type="number"
             min="0"
             value={formData.position}
-            onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, position: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            placeholder="0 = първа позиция"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            0 = първа позиция, по-големи числа = по-назад
-          </p>
         </div>
       </div>
 
@@ -181,14 +214,17 @@ export function CollectionForm({ collection }: CollectionFormProps) {
         </label>
         <textarea
           value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
           rows={4}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          placeholder="Описание на колекцията (незадължително)"
+          placeholder="Картички от семенна хартия за любимите хора — мама, татко, баба и дядо."
         />
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Описание, което ще се показва под заглавието на колекцията
-        </p>
+        <FieldHint example="Картички от семенна хартия за мама. Ръчна изработка в София.">
+          Кратко описание на категорията. Помага на клиентите и за SEO —
+          опиши за кого са продуктите и каква е ползата.
+        </FieldHint>
       </div>
 
       <div className="flex gap-4">
@@ -202,7 +238,7 @@ export function CollectionForm({ collection }: CollectionFormProps) {
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md"
         >
           Отказ
         </button>

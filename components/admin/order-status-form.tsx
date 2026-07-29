@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "app/admin/orders/[id]/actions";
 import { toast } from "sonner";
 
-type OrderStatus = "new" | "confirmed" | "shipped" | "paid" | "completed" | "canceled";
+type OrderStatus = "new" | "pending_payment" | "confirmed" | "shipped" | "paid" | "completed" | "canceled";
 
 export function OrderStatusForm({
   orderId,
@@ -52,6 +52,7 @@ export function OrderStatusForm({
         disabled={loading}
       >
         <option value="new">Нова</option>
+        <option value="pending_payment">Очаква плащане</option>
         <option value="confirmed">Потвърждение с клиент</option>
         <option value="shipped">Изпратена пратка</option>
         <option value="paid">Платена пратка</option>

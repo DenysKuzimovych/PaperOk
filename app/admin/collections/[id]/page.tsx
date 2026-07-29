@@ -1,4 +1,4 @@
-import { getCollectionByIdForAdmin } from "lib/supabase/admin-collections";
+import { getCollectionByIdForAdmin, getAllCollectionsForAdmin } from "lib/supabase/admin-collections";
 import { CollectionForm } from "components/admin/collection-form";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -20,8 +20,12 @@ export default async function EditCollectionPage({
   }
   
   let collection;
+  let allCollections;
   try {
-    collection = await getCollectionByIdForAdmin(id);
+    [collection, allCollections] = await Promise.all([
+      getCollectionByIdForAdmin(id),
+      getAllCollectionsForAdmin(),
+    ]);
     
     if (!collection) {
       notFound();
@@ -43,13 +47,13 @@ export default async function EditCollectionPage({
           href="/admin/collections"
           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
         >
-          ← Назад към колекциите
+          ← Назад към категориите
         </Link>
       </div>
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Редактирай Колекция
+          Редактирай Категория
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           {collection.title}
@@ -57,7 +61,16 @@ export default async function EditCollectionPage({
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <CollectionForm collection={collection} />
+        <CollectionForm
+          collection={collection}
+          allCollections={allCollections.map((c: any) => ({
+            id: c.id,
+            handle: c.handle,
+            title: c.title,
+            position: c.position ?? 0,
+            parent_id: c.parent_id || null,
+          }))}
+        />
       </div>
     </div>
   );

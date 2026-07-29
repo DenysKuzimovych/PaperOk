@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCollections } from "lib/supabase/products";
+import { getStorefrontCollections } from "lib/supabase/products";
 
 export async function GET() {
   try {
-    const collections = await getCollections();
+    const collections = await getStorefrontCollections();
     return NextResponse.json(collections);
   } catch (error) {
     console.error("Error fetching collections:", error);

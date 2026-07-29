@@ -16,7 +16,15 @@ export default async function NewProductPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <ProductForm collections={collections} />
+        <ProductForm
+          collections={collections.map((c: any) => ({
+            id: c.id,
+            handle: c.handle,
+            title: c.title,
+            position: c.position ?? 0,
+            parent_id: c.parent_id || null,
+          }))}
+        />
       </div>
     </div>
   );

@@ -96,17 +96,17 @@ export function FilterDropdown({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 min-w-[140px] justify-between ${
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border border-paper-border text-sm font-medium transition-all duration-200 min-w-[140px] justify-between ${
           hasActiveFilters
-            ? "bg-stone-400 text-white dark:bg-stone-600 border-stone-400 dark:border-stone-600 hover:bg-stone-500 dark:hover:bg-stone-700"
-            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+            ? "bg-paper-green text-white border-paper-green hover:bg-paper-green-hover"
+            : "bg-paper-white text-paper-heading shadow-sm hover:bg-paper-bg"
         }`}
       >
         <div className="flex items-center gap-2">
           <FunnelIcon className="h-5 w-5" />
           <span>Филтри</span>
           {hasActiveFilters && (
-            <span className="ml-1 rounded-full bg-white/20 dark:bg-white/10 px-2 py-0.5 text-xs font-semibold">
+            <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
               {[
                 currentFilters.minPrice !== undefined || currentFilters.maxPrice !== undefined,
                 currentFilters.categories.length > 0,
@@ -123,13 +123,13 @@ export function FilterDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-[80vh] overflow-y-auto">
+        <div className="absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-paper-white border border-paper-border rounded-lg shadow-lg z-50 max-h-[80vh] overflow-y-auto">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Филтри</h3>
+              <h3 className="text-lg font-semibold text-paper-heading">Филтри</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-paper-muted hover:text-paper-text"
                 aria-label="Затвори"
               >
                 <XMarkIcon className="h-5 w-5" />
@@ -138,12 +138,12 @@ export function FilterDropdown({
 
             {/* Price Range */}
             <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              <h4 className="text-sm font-semibold text-paper-heading mb-3">
                 Ценови диапазон (EUR)
               </h4>
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs font-medium text-paper-heading mb-1">
                     От
                   </label>
                   <input
@@ -153,11 +153,11 @@ export function FilterDropdown({
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs font-medium text-paper-heading mb-1">
                     До
                   </label>
                   <input
@@ -167,7 +167,7 @@ export function FilterDropdown({
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     placeholder="1000.00"
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
                   />
                 </div>
               </div>
@@ -175,22 +175,22 @@ export function FilterDropdown({
 
             {/* Categories */}
             <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              <h4 className="text-sm font-semibold text-paper-heading mb-3">
                 Категории
               </h4>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {collections.map((collection) => (
                   <label
                     key={collection.id}
-                    className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    className="flex items-center gap-2 p-2 rounded-md hover:bg-paper-bg cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(collection.handle)}
                       onChange={() => handleCategoryToggle(collection.handle)}
-                      className="h-4 w-4 text-stone-600 rounded border-gray-300 focus:ring-stone-500"
+                      className="h-4 w-4 text-paper-text rounded border-paper-border focus:ring-paper-green"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm text-paper-heading">
                       {collection.title}
                     </span>
                   </label>
@@ -200,30 +200,30 @@ export function FilterDropdown({
 
             {/* On Sale Only */}
             <div className="mb-4">
-              <label className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+              <label className="flex items-center gap-2 p-2 rounded-md hover:bg-paper-bg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={onSaleOnly}
                   onChange={(e) => setOnSaleOnly(e.target.checked)}
-                  className="h-4 w-4 text-stone-600 rounded border-gray-300 focus:ring-stone-500"
+                  className="h-4 w-4 text-paper-text rounded border-paper-border focus:ring-paper-green"
                 />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-paper-heading">
                   Само продукти на намаление
                 </span>
               </label>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-2 pt-3 border-t border-paper-border">
               <button
                 onClick={handleApply}
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-stone-400 dark:bg-stone-600 rounded-md hover:bg-stone-500 dark:hover:bg-stone-700 transition-colors"
+                className="btn-primary-sm flex-1"
               >
                 Приложи
               </button>
               <button
                 onClick={handleReset}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-paper-heading bg-paper-section rounded-md hover:bg-paper-section transition-colors"
               >
                 Изчисти
               </button>

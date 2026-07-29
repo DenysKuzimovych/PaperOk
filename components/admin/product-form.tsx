@@ -4,8 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProductAction, updateProductAction } from "app/admin/products/actions";
 import { toast } from "sonner";
-import type { Image } from "lib/types";
+import type { Image, ProductSizeVariant } from "lib/types";
 import { ImageUploadButton } from "./image-upload-button";
+import { FieldHint } from "./field-hint";
+import { ProductVariantsEditor } from "./product-variants-editor";
+import {
+  buildCategoryTree,
+  flattenCategoryTree,
+  type FlatCategory,
+} from "lib/category-tree";
 
 interface ProductFormData {
   handle: string;
@@ -16,13 +23,15 @@ interface ProductFormData {
   featured_image_url: string;
   category: string;
   available: boolean;
+  plantable: boolean;
   position: string;
   images: Image[];
+  variants: ProductSizeVariant[];
 }
 
 interface ProductFormProps {
   product?: any;
-  collections: any[];
+  collections: FlatCategory[];
 }
 
 export function ProductForm({ product, collections }: ProductFormProps) {
@@ -30,18 +39,35 @@ export function ProductForm({ product, collections }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState<Set<string>>(new Set());
   const [handleError, setHandleError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<ProductFormData>(() => ({
     handle: product?.handle || "",
     title: product?.title || "",
     description: product?.description || "",
-    price: product?.price?.toString() || "0",
-    compare_at_price: product?.compare_at_price?.toString() || "",
+    price:
+      product?.price !== undefined && product?.price !== null
+        ? String(product.price)
+        : "0",
+    compare_at_price:
+      product?.compare_at_price !== undefined &&
+      product?.compare_at_price !== null
+        ? String(product.compare_at_price)
+        : "",
     featured_image_url: product?.featured_image?.url || "",
     category: product?.category || "",
     available: product?.available !== false,
-    position: product?.position?.toString() || "0",
-    images: product?.images || [],
-  });
+    plantable: product?.plantable !== false,
+    position:
+      product?.position !== undefined && product?.position !== null
+        ? String(product.position)
+        : "0",
+    images: Array.isArray(product?.images)
+      ? product.images.filter((img: Image) => img && img.url)
+      : [],
+    variants: Array.isArray(product?.variants) ? product.variants : [],
+  }));
+
+  const categoryTree = buildCategoryTree(collections);
+  const categoryOptions = flattenCategoryTree(categoryTree);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +101,9 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         images: imagesWithAltText,
         category: formData.category || undefined,
         available: formData.available,
+        plantable: formData.plantable,
         position: parseInt(formData.position) || 0,
+        variants: formData.variants,
       };
 
       let result;
@@ -309,9 +337,11 @@ export function ProductForm({ product, collections }: ProductFormProps) {
               {handleError}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Ако не се въведе, ще се генерира автоматично от името. Само малки букви, числа и без разстояния. Пример: /teniskazelena
-            </p>
+            <FieldHint example="kartichka-za-mama → /product/kartichka-za-mama">
+              Адресът на продукта в URL. Само латински букви, цифри и тирета —
+              без интервали и кирилица. Ако е празно, се генерира от името.
+              Добре е да съдържа ключова дума (напр. продукт + повод).
+            </FieldHint>
           )}
         </div>
 
@@ -338,8 +368,12 @@ export function ProductForm({ product, collections }: ProductFormProps) {
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={4}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          placeholder="Описанието ще се покаже автоматично под продукта"
+          placeholder="Картичка от семенна хартия за мама — може да се засади и да разцъфти."
         />
+        <FieldHint example="Картичка от семенна хартия за мама. Ръчна изработка, може да се засади. Размери A7, A6 и A5.">
+          Описанието се вижда на продуктовата страница и помага за SEO.
+          Включвай какво е продуктът, за кого е и ключови ползи (2–4 изречения).
+        </FieldHint>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -380,9 +414,9 @@ export function ProductForm({ product, collections }: ProductFormProps) {
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
             <option value="">Избери категория</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.handle}>
-                {collection.title}
+            {categoryOptions.map((cat) => (
+              <option key={cat.id} value={cat.handle}>
+                {"—".repeat(cat.depth)} {cat.title}
               </option>
             ))}
           </select>
@@ -405,6 +439,12 @@ export function ProductForm({ product, collections }: ProductFormProps) {
           </p>
         </div>
       </div>
+
+      <ProductVariantsEditor
+        variants={formData.variants}
+        basePrice={formData.price}
+        onChange={(variants) => setFormData({ ...formData, variants })}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -495,17 +535,41 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         })}
       </div>
 
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="available"
-          checked={formData.available}
-          onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-          className="mr-2"
-        />
-        <label htmlFor="available" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Продуктът е достъпен
-        </label>
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="available"
+            checked={formData.available}
+            onChange={(e) =>
+              setFormData({ ...formData, available: e.target.checked })
+            }
+            className="mr-2"
+          />
+          <label
+            htmlFor="available"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Продуктът е достъпен
+          </label>
+        </div>
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="plantable"
+            checked={formData.plantable}
+            onChange={(e) =>
+              setFormData({ ...formData, plantable: e.target.checked })
+            }
+            className="mr-2"
+          />
+          <label
+            htmlFor="plantable"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Може да се засади (показва таб „Как се засажда“)
+          </label>
+        </div>
       </div>
 
       <div className="flex gap-4">

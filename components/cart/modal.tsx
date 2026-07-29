@@ -8,7 +8,7 @@ import Price from "components/price";
 import { createUrl } from "lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { redirectToCheckout } from "./actions";
 import { useCart } from "./cart-context";
@@ -17,18 +17,26 @@ import { EditItemQuantityButton } from "./edit-item-quantity-button";
 import OpenCart from "./open-cart";
 
 export default function CartModal() {
-  const { cart, updateCartItem } = useCart();
+  const { cart, updateCartItem, cartBump } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [bump, setBump] = useState(false);
+  const prevBump = useRef(cartBump);
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
-  // Cart is now managed in localStorage, no need to create in database
-  // Cart modal only opens when user clicks the cart button, not automatically
+  useEffect(() => {
+    if (cartBump > 0 && cartBump !== prevBump.current) {
+      prevBump.current = cartBump;
+      setBump(true);
+      const t = window.setTimeout(() => setBump(false), 700);
+      return () => window.clearTimeout(t);
+    }
+  }, [cartBump]);
 
   return (
     <>
       <button aria-label="Отвори количка" onClick={openCart}>
-        <OpenCart quantity={cart?.totalQuantity} />
+        <OpenCart quantity={cart?.totalQuantity} bump={bump} />
       </button>
       <Transition show={isOpen}>
         <Dialog onClose={closeCart} className="relative z-50">
@@ -52,7 +60,7 @@ export default function CartModal() {
             leaveFrom="translate-x-0"
             leaveTo="translate-x-full"
           >
-            <Dialog.Panel className="fixed bottom-0 right-0 top-0 flex h-full w-full flex-col border-l border-neutral-200 bg-white/80 p-6 text-black backdrop-blur-xl md:w-[390px] dark:border-neutral-700 dark:bg-black/80 dark:text-white">
+            <Dialog.Panel className="fixed bottom-0 right-0 top-0 flex h-full w-full flex-col border-l border-paper-border bg-paper-white/80 p-6 text-paper-heading backdrop-blur-xl md:w-[390px]">
               <div className="flex items-center justify-between">
                 <p className="text-lg font-semibold">Моята Количка</p>
                 <button aria-label="Затвори количка" onClick={closeCart}>
@@ -80,7 +88,7 @@ export default function CartModal() {
                         return (
                           <li
                             key={i}
-                            className="flex w-full flex-col border-b border-neutral-300 dark:border-neutral-700"
+                            className="flex w-full flex-col border-b border-paper-border"
                           >
                             <div className="relative flex w-full flex-row justify-between px-1 py-4">
                               <div className="absolute z-40 -ml-1 -mt-2">
@@ -90,7 +98,7 @@ export default function CartModal() {
                                 />
                               </div>
                               <div className="flex flex-row">
-                                <div className="relative h-16 w-16 overflow-hidden rounded-md border border-neutral-300 bg-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                <div className="relative h-16 w-16 overflow-hidden rounded-md border border-paper-border bg-paper-section">
                                   <Image
                                     className="h-full w-full object-cover"
                                     width={64}
@@ -109,7 +117,7 @@ export default function CartModal() {
                                       {item.product.title}
                                     </span>
                                     {item.variant.title !== "Стандартен" ? (
-                                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                      <p className="text-sm text-paper-muted">
                                         {item.variant.title}
                                       </p>
                                     ) : null}
@@ -122,7 +130,7 @@ export default function CartModal() {
                                   amount={(item.price * item.quantity).toString()}
                                   currencyCode={cart.currency}
                                 />
-                                <div className="ml-auto flex h-9 flex-row items-center rounded-full border border-neutral-200 dark:border-neutral-700">
+                                <div className="ml-auto flex h-9 flex-row items-center rounded-full border border-paper-border">
                                   <EditItemQuantityButton
                                     item={item}
                                     type="minus"
@@ -145,28 +153,28 @@ export default function CartModal() {
                         );
                       })}
                   </ul>
-                  <div className="py-4 text-sm text-neutral-500 dark:text-neutral-400">
-                    <div className="mb-3 flex items-center justify-between border-b border-neutral-200 pb-1 dark:border-neutral-700">
+                  <div className="py-4 text-sm text-paper-muted">
+                    <div className="mb-3 flex items-center justify-between border-b border-paper-border pb-1">
                       <p>Междинна сума</p>
                       <Price
-                        className="text-right text-base text-black dark:text-white"
+                        className="text-right text-base text-paper-heading"
                         amount={cart.subtotal.toString()}
                         currencyCode={cart.currency}
                       />
                     </div>
-                    <div className="mb-3 flex items-center justify-between border-b border-neutral-200 pb-1 pt-1 dark:border-neutral-700">
+                    <div className="mb-3 flex items-center justify-between border-b border-paper-border pb-1 pt-1">
                       <p>Доставка</p>
                       <p className="text-right">Ще се изчисли при плащане</p>
                     </div>
-                    <div className="mb-3 flex items-center justify-between border-b border-neutral-200 pb-1 pt-1 dark:border-neutral-700">
+                    <div className="mb-3 flex items-center justify-between border-b border-paper-border pb-1 pt-1">
                       <p>Общо</p>
                       <Price
-                        className="text-right text-base text-black dark:text-white"
+                        className="text-right text-base text-paper-heading"
                         amount={cart.total.toString()}
                         currencyCode={cart.currency}
                       />
                     </div>
-                    <div className="mt-3 text-xs text-neutral-400 dark:text-neutral-500">
+                    <div className="mt-3 text-xs text-paper-muted">
                       <p className="text-center">
                         Цените се изчисляват по курс 1 EUR = 1.95583 BGN
                       </p>
@@ -175,7 +183,7 @@ export default function CartModal() {
                   <Link
                     href="/checkout"
                     onClick={closeCart}
-                    className="block w-full rounded-full bg-blue-600 p-3 text-center text-sm font-medium text-white opacity-90 hover:opacity-100"
+                    className="btn-primary block w-full rounded-full opacity-90 hover:opacity-100"
                   >
                     Финализирай поръчката
                   </Link>
@@ -191,7 +199,7 @@ export default function CartModal() {
 
 function CloseCart({ className }: { className?: string }) {
   return (
-    <div className="relative flex h-11 w-11 items-center justify-center rounded-md border border-neutral-200 text-black transition-colors dark:border-neutral-700 dark:text-white">
+    <div className="relative flex h-11 w-11 items-center justify-center rounded-md border border-paper-border text-paper-heading transition-colors">
       <XMarkIcon
         className={clsx(
           "h-6 transition-all ease-in-out hover:scale-110",

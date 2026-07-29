@@ -1,22 +1,47 @@
-import { getProducts } from "lib/supabase/products";
-import { ThreeItemGrid } from "components/grid/three-items";
 import Footer from "components/layout/footer";
+import { AboutUs } from "components/home/about-us";
+import { CategoryCards } from "components/home/category-cards";
+import { FAQ } from "components/home/faq";
+import { FeaturedProducts } from "components/home/featured-products";
+import { Hero } from "components/home/hero";
+import { HowItWorks } from "components/home/how-it-works";
+import { Projects } from "components/home/projects";
+import { Testimonials } from "components/home/testimonials";
+import { WhyPaperOK } from "components/home/why-paperok";
+import { SITE_TAGLINE, LOGO_WITH_BACKGROUND, LOGO_WITH_BACKGROUND_SIZE } from "lib/constants";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
-  description:
-    "High-performance ecommerce store built with Next.js, Supabase, and Stripe.",
+  title: "PaperOK — Подаръци, които разцъфват",
+  description: SITE_TAGLINE,
   openGraph: {
     type: "website",
+    title: "PaperOK — Подаръци, които разцъфват",
+    description: SITE_TAGLINE,
+    images: [
+      {
+        url: LOGO_WITH_BACKGROUND,
+        width: LOGO_WITH_BACKGROUND_SIZE.width,
+        height: LOGO_WITH_BACKGROUND_SIZE.height,
+        alt: "PaperOK",
+      },
+    ],
   },
 };
 
-export default async function HomePage() {
-  // Get featured products for homepage
-  const featuredProducts = await getProducts({ limit: 6 });
-
+export default function HomePage() {
   return (
     <>
-      <ThreeItemGrid products={featuredProducts} />
+      <Hero />
+      <CategoryCards />
+      <HowItWorks />
+      <FeaturedProducts />
+      <WhyPaperOK />
+      <Testimonials />
+      <Projects />
+      <AboutUs />
+      <FAQ />
       <Footer />
     </>
   );

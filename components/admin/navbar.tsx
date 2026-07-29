@@ -58,12 +58,17 @@ export function AdminNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link
-                href="/admin"
-                className="text-xl font-bold text-gray-900 dark:text-white"
-              >
-                Админ Панел
+            <div className="flex-shrink-0 flex items-center gap-3">
+              <Link href="/admin" className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-removebg-preview.png"
+                  alt="PaperOK"
+                  className="h-8 w-auto object-contain"
+                />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  Админ
+                </span>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -77,7 +82,10 @@ export function AdminNavbar() {
                 Продукти
               </Link>
               <Link href="/admin/collections" className={getLinkClassName("/admin/collections")}>
-                Колекции
+                Категории
+              </Link>
+              <Link href="/admin/blog" className={getLinkClassName("/admin/blog")}>
+                Блог
               </Link>
             </div>
           </div>
@@ -145,7 +153,14 @@ export function AdminNavbar() {
               className={getMobileLinkClassName("/admin/collections")}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Колекции
+              Категории
+            </Link>
+            <Link
+              href="/admin/blog"
+              className={getMobileLinkClassName("/admin/blog")}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Блог
             </Link>
             <Link
               href="/"

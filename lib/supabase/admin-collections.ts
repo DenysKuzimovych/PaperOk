@@ -1,4 +1,4 @@
-import { createServerClient } from "./server";
+import { createServiceClient } from "./service";
 
 // Helper to check if error is React.postpone()
 function isReactPostpone(error: unknown): boolean {
@@ -15,6 +15,7 @@ export interface CreateCollectionData {
   title: string;
   description?: string;
   position?: number;
+  parent_id?: string | null;
 }
 
 export interface UpdateCollectionData extends Partial<CreateCollectionData> {
@@ -26,7 +27,7 @@ export interface UpdateCollectionData extends Partial<CreateCollectionData> {
  */
 export async function getAllCollectionsForAdmin() {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { data, error } = await supabase
       .from("collections")
@@ -55,7 +56,7 @@ export async function getAllCollectionsForAdmin() {
  */
 export async function getCollectionByIdForAdmin(collectionId: string) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { data, error } = await supabase
       .from("collections")
@@ -92,7 +93,7 @@ export async function getCollectionByIdForAdmin(collectionId: string) {
  */
 async function checkCollectionHandleExists(handle: string, excludeId?: string): Promise<boolean> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     const trimmedHandle = handle.trim();
     
     let query = supabase
@@ -128,7 +129,7 @@ async function checkCollectionHandleExists(handle: string, excludeId?: string): 
  */
 export async function createCollection(data: CreateCollectionData) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const trimmedHandle = data.handle.trim();
     
@@ -141,7 +142,9 @@ export async function createCollection(data: CreateCollectionData) {
     const collectionData = {
       handle: trimmedHandle,
       title: data.title,
+      description: data.description || null,
       position: data.position ?? 0,
+      parent_id: data.parent_id || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -176,7 +179,7 @@ export async function createCollection(data: CreateCollectionData) {
  */
 export async function updateCollection(data: UpdateCollectionData) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const updateData: any = {
       updated_at: new Date().toISOString(),
@@ -196,6 +199,7 @@ export async function updateCollection(data: UpdateCollectionData) {
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description || null;
     if (data.position !== undefined) updateData.position = data.position;
+    if (data.parent_id !== undefined) updateData.parent_id = data.parent_id || null;
 
     const { data: collection, error } = await supabase
       .from("collections")
@@ -229,7 +233,7 @@ export async function updateCollection(data: UpdateCollectionData) {
  */
 export async function deleteCollection(collectionId: string) {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServiceClient();
     
     const { error } = await supabase
       .from("collections")

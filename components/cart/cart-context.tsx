@@ -20,6 +20,8 @@ type CartContextType = {
   updateCartItem: (itemId: string, updateType: UpdateType) => void;
   addCartItem: (variant: ProductVariant, product: Product) => void;
   clearCart: () => void;
+  /** Increments when an item is added — use to trigger cart icon animation */
+  cartBump: number;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -183,6 +185,7 @@ export function CartProvider({
   children: React.ReactNode;
 }) {
   const [cart, setCart] = useState<Cart | null>(null);
+  const [cartBump, setCartBump] = useState(0);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -264,6 +267,7 @@ export function CartProvider({
         items: updatedItems,
       };
     });
+    setCartBump((n) => n + 1);
   };
 
   const clearCart = () => {
@@ -275,7 +279,9 @@ export function CartProvider({
   };
 
   return (
-    <CartContext.Provider value={{ cart, updateCartItem, addCartItem, clearCart }}>
+    <CartContext.Provider
+      value={{ cart, updateCartItem, addCartItem, clearCart, cartBump }}
+    >
       {children}
     </CartContext.Provider>
   );

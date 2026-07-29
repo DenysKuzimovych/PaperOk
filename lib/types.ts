@@ -8,6 +8,14 @@ export type Image = {
   height?: number;
 };
 
+export type ProductSizeVariant = {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  enabled: boolean;
+};
+
 export type ProductVariant = {
   id: string;
   title: string;
@@ -29,6 +37,9 @@ export type Product = {
   price: number;
   compareAtPrice?: number;
   category?: string;
+  variants: ProductSizeVariant[];
+  /** Show planting instructions / plantable badge when true */
+  plantable: boolean;
   createdAt: string;
   updatedAt: string;
   available: boolean;
@@ -66,6 +77,23 @@ export type Collection = {
   handle: string;
   title: string;
   description?: string;
+  parentId?: string | null;
+  position?: number;
+  updatedAt: string;
+};
+
+export type BlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  content: string;
+  featuredImage?: Image;
+  images: Image[];
+  seoTitle?: string;
+  seoDescription?: string;
+  published: boolean;
+  createdAt: string;
   updatedAt: string;
 };
 

@@ -1,40 +1,46 @@
 import { AddToCart } from "components/cart/add-to-cart";
 import Price from "components/price";
 import { Product } from "lib/types";
+import { ProductTrustBadges } from "./product-trust-badges";
 
 export function ProductDescription({ product }: { product: Product }) {
+  const enabledVariants = (product.variants || []).filter((v) => v.enabled);
+  const showBasePrice = enabledVariants.length === 0;
+  const fromPrice =
+    enabledVariants.length > 0
+      ? Math.min(...enabledVariants.map((v) => v.price))
+      : product.price;
+
   return (
     <>
-      <div className="mb-6 flex flex-col border-b pb-6 dark:border-neutral-700">
+      <div className="mb-6 flex flex-col border-b pb-6">
         <h1 className="mb-2 text-5xl font-medium">{product.title}</h1>
-        <div className="mr-auto w-auto rounded-full bg-stone-200 dark:bg-stone-700 p-2 text-sm text-stone-900 dark:text-stone-100">
-          {product.compareAtPrice && product.compareAtPrice > product.price ? (
-            <div className="flex items-center gap-2">
-              <span className="text-red-600 dark:text-red-400 line-through">
-                <Price
-                  amount={product.compareAtPrice.toString()}
-                  currencyCode="EUR"
-                />
-              </span>
-              <Price
-                amount={product.price.toString()}
-                currencyCode="EUR"
-              />
-            </div>
-          ) : (
-            <Price
-              amount={product.price.toString()}
-              currencyCode="EUR"
-            />
-          )}
-        </div>
+        {showBasePrice && (
+          <div className="mr-auto w-auto rounded-full bg-paper-section p-2 text-sm text-paper-heading">
+            {product.compareAtPrice &&
+            product.compareAtPrice > product.price ? (
+              <div className="flex items-center gap-2">
+                <span className="text-red-600 line-through">
+                  <Price
+                    amount={product.compareAtPrice.toString()}
+                    currencyCode="EUR"
+                  />
+                </span>
+                <Price amount={product.price.toString()} currencyCode="EUR" />
+              </div>
+            ) : (
+              <Price amount={product.price.toString()} currencyCode="EUR" />
+            )}
+          </div>
+        )}
+        {!showBasePrice && (
+          <p className="text-sm text-paper-muted">
+            от <Price amount={fromPrice.toString()} currencyCode="EUR" />
+          </p>
+        )}
       </div>
-      {product.description && (
-        <div className="mb-6 text-sm leading-tight dark:text-white/[60%]">
-          {product.description}
-        </div>
-      )}
       <AddToCart product={product} />
+      <ProductTrustBadges plantable={product.plantable} />
     </>
   );
 }

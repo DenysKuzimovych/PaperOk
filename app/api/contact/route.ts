@@ -24,13 +24,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email
-    await sendContactFormEmail({
+    const result = await sendContactFormEmail({
       name,
       email,
       phone,
       message,
       subject,
     });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Неуспешно изпращане на имейл. Моля, опитайте отново." },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json(
       { success: true, message: "Contact form submitted successfully" },

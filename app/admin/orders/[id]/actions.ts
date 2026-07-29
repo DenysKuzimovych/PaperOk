@@ -1,10 +1,10 @@
 "use server";
 
-import { updateOrderStatus as updateStatus, updateOrder, type UpdateOrderData } from "lib/supabase/orders";
+import { updateOrderStatus as updateStatus, updateOrder, type UpdateOrderData, type OrderStatus } from "lib/supabase/orders";
 
 export async function updateOrderStatus(
   orderId: string,
-  status: "new" | "confirmed" | "shipped" | "paid" | "completed" | "canceled"
+  status: OrderStatus
 ) {
   return await updateStatus(orderId, status);
 }
