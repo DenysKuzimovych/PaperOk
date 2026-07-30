@@ -6,6 +6,7 @@ import { useCart } from "components/cart/cart-context";
 import Price from "components/price";
 import { createOrder } from "app/checkout/actions";
 import LoadingDots from "components/loading-dots";
+import { CARD_PAYMENTS_ENABLED } from "lib/constants";
 
 function generateIdempotencyKey() {
   return crypto.randomUUID();
@@ -83,6 +84,9 @@ export default function CheckoutPage() {
 
       // If card payment, redirect to Stripe
       if (formData.payment_method === "card") {
+        if (!CARD_PAYMENTS_ENABLED) {
+          throw new Error("Плащането с карта не е налично");
+        }
         // Redirect to Stripe checkout
         const response = await fetch("/api/checkout/create-session", {
           method: "POST",
@@ -256,6 +260,7 @@ export default function CheckoutPage() {
                       </div>
                     </label>
 
+                    {CARD_PAYMENTS_ENABLED ? (
                     <label className="flex items-center p-4 border border-paper-border rounded-lg cursor-pointer hover:bg-paper-bg">
                       <input
                         type="radio"
@@ -279,6 +284,7 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                     </label>
+                    ) : null}
                   </div>
                 </div>
 

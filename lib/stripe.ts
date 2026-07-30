@@ -1,13 +1,28 @@
 import Stripe from "stripe";
 import type { Cart } from "./types";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not set");
+/** True when STRIPE_SECRET_KEY is set — server-side card payments. */
+export function isStripeEnabled(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia" as any,
-});
+/**
+ * Client-visible flag (NEXT_PUBLIC_*). Both keys should be set for card checkout;
+ * the UI uses the publishable key to decide whether to show “Плащане с карта”.
+ */
+export function isStripePublicEnabled(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim());
+}
+
+function getStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) {
+    throw new Error("Плащането с карта не е конфигурирано");
+  }
+  return new Stripe(key, {
+    apiVersion: "2024-11-20.acacia" as any,
+  });
+}
 
 export async function createCheckoutSession(
   cart: Cart,
@@ -16,6 +31,7 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string,
 ) {
+  const stripe = getStripe();
   const currency = "eur";
 
   const lineItems = cart.items.map((item) => ({
@@ -50,7 +66,7 @@ export async function createCheckoutSession(
 }
 
 export async function getSession(sessionId: string) {
-  return await stripe.checkout.sessions.retrieve(sessionId);
+  return await getStripe().checkout.sessions.retrieve(sessionId);
 }
 
 /** Optional — only needed if you configure a Stripe webhook endpoint. */
@@ -59,6 +75,6 @@ export function constructStripeEvent(
   signature: string,
 ): Stripe.Event | null {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) return null;
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  if (!webhookSecret || !isStripeEnabled()) return null;
+  return getStripe().webhooks.constructEvent(payload, signature, webhookSecret);
 }

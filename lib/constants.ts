@@ -73,6 +73,11 @@ export const INSTAGRAM_URL = "https://www.instagram.com/paperok.official/";
 export const FACEBOOK_URL =
   "https://www.facebook.com/profile.php?id=61591837265074";
 export const CONTACT_LOCATION = "София, България";
+
+/** Card checkout is shown only when the publishable Stripe key is set. */
+export const CARD_PAYMENTS_ENABLED = Boolean(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim(),
+);
 export const BUSINESS_TAGLINE =
   "Еко хартия със семена. С нас вашата марка ще процъфти";
 export const BUSINESS_BIO =

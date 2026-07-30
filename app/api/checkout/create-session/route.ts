@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCheckoutSession } from "lib/stripe";
+import { createCheckoutSession, isStripeEnabled } from "lib/stripe";
 import {
   getOrderById,
   updateOrderStripeSession,
@@ -9,6 +9,13 @@ import { baseUrl } from "lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isStripeEnabled()) {
+      return NextResponse.json(
+        { error: "Плащането с карта не е налично" },
+        { status: 503 },
+      );
+    }
+
     const { orderId, cart } = await request.json();
 
     if (!orderId) {

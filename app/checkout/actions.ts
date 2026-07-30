@@ -2,6 +2,7 @@
 
 import { createOrder as createOrderInDb } from "lib/supabase/orders";
 import { validateCartPrices } from "lib/supabase/validate-cart";
+import { isStripeEnabled } from "lib/stripe";
 import type { CreateOrderData } from "lib/supabase/orders";
 import type { CartItem } from "lib/types";
 
@@ -10,6 +11,10 @@ export async function createOrder(
   cartItems?: CartItem[],
 ) {
   try {
+    if (data.payment_method === "card" && !isStripeEnabled()) {
+      throw new Error("Плащането с карта не е налично");
+    }
+
     if (cartItems && cartItems.length > 0) {
       const validation = await validateCartPrices(cartItems);
       if (!validation.valid) {

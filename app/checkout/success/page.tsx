@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getOrderById, fulfillCodOrder, fulfillPaidOrder } from "lib/supabase/orders";
-import { getSession } from "lib/stripe";
+import { getSession, isStripeEnabled } from "lib/stripe";
 import { ClearCartOnSuccess } from "components/cart/clear-cart-on-success";
 
 export default async function CheckoutSuccessPage({
@@ -20,7 +20,7 @@ export default async function CheckoutSuccessPage({
 
       if (order.payment_method === "cash_on_delivery") {
         order = await fulfillCodOrder(orderId);
-      } else if (order.payment_method === "card") {
+      } else if (order.payment_method === "card" && isStripeEnabled()) {
         // Verify payment via Stripe API (no webhook needed)
         const stripeSessionId = order.stripe_session_id || sessionId;
         if (order.status !== "paid" && stripeSessionId) {
@@ -32,8 +32,6 @@ export default async function CheckoutSuccessPage({
           } catch (err) {
             console.error("Stripe session verification failed:", err);
           }
-        } else if (order.status === "paid") {
-          order = order;
         }
       }
     } catch (error) {
