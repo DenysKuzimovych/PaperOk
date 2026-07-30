@@ -68,7 +68,7 @@ export const SITE_TAGLINE =
 
 export const SITE_HEADLINE = "Подаръци, които разцъфват";
 
-export const CONTACT_EMAIL_DEFAULT = "paperok.info@gmail.com";
+export const CONTACT_EMAIL = "paperok.info@gmail.com";
 export const INSTAGRAM_URL = "https://www.instagram.com/paperok.official/";
 export const FACEBOOK_URL =
   "https://www.facebook.com/profile.php?id=61591837265074";

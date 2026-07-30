@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import {
   SITE_NAME,
-  CONTACT_EMAIL_DEFAULT,
+  CONTACT_EMAIL,
   LOGO_WITH_BACKGROUND,
 } from "lib/constants";
 import { getBaseUrl } from "lib/utils";
@@ -9,19 +9,13 @@ import { getBaseUrl } from "lib/utils";
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-/** Public contact address (shown on site / reply-to context) */
-const contactEmail =
-  process.env.CONTACT_EMAIL ||
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL ||
-  CONTACT_EMAIL_DEFAULT;
-
 /**
  * Where Resend actually delivers notifications.
  * Without a verified domain, Resend only allows sending TO the account email.
  * Set RESEND_TO_EMAIL to that address (e.g. avoex.contact@gmail.com) while testing.
  */
 const notificationTo =
-  process.env.RESEND_TO_EMAIL || contactEmail;
+  process.env.RESEND_TO_EMAIL || CONTACT_EMAIL;
 
 /**
  * From address. Without a verified domain use onboarding@resend.dev.
@@ -110,8 +104,8 @@ export async function sendContactFormEmail(
         <hr>
         <p><small>This email was sent from the contact form on ${siteName}</small></p>
         ${
-          notificationTo !== contactEmail
-            ? `<p><small>Intended inbox: ${escapeHtml(contactEmail)}</small></p>`
+          notificationTo !== CONTACT_EMAIL
+            ? `<p><small>Intended inbox: ${escapeHtml(CONTACT_EMAIL)}</small></p>`
             : ""
         }
       `,

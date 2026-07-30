@@ -4,7 +4,7 @@ import Footer from "components/layout/footer";
 import {
   BUSINESS_BIO,
   BUSINESS_TAGLINE,
-  CONTACT_EMAIL_DEFAULT,
+  CONTACT_EMAIL,
   CONTACT_LOCATION,
   FACEBOOK_URL,
   INSTAGRAM_URL,
@@ -12,15 +12,7 @@ import {
 import { useState } from "react";
 import { EnvelopeIcon, PhoneIcon, MapPinIcon } from "@heroicons/react/24/outline";
 
-const contactEmail =
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL ||
-  process.env.CONTACT_EMAIL ||
-  CONTACT_EMAIL_DEFAULT;
 const contactPhone = process.env.NEXT_PUBLIC_CONTACT_PHONE || "";
-const facebookUrl = process.env.NEXT_PUBLIC_FACEBOOK_URL || FACEBOOK_URL;
-const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL || INSTAGRAM_URL;
-const contactLocation =
-  process.env.NEXT_PUBLIC_CONTACT_LOCATION || CONTACT_LOCATION;
 
 const inputClass =
   "w-full rounded-lg border border-paper-border bg-paper-white px-4 py-2 text-paper-heading focus:border-paper-green focus:outline-none focus:ring-1 focus:ring-paper-green";
@@ -116,10 +108,10 @@ export default function ContactPage() {
                       Имейл
                     </h3>
                     <a
-                      href={`mailto:${contactEmail}`}
+                      href={`mailto:${CONTACT_EMAIL}`}
                       className="text-base text-paper-heading hover:text-paper-green"
                     >
-                      {contactEmail}
+                      {CONTACT_EMAIL}
                     </a>
                   </div>
                 </div>
@@ -152,14 +144,14 @@ export default function ContactPage() {
                       Адрес
                     </h3>
                     <p className="text-base text-paper-heading">
-                      {contactLocation}
+                      {CONTACT_LOCATION}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex gap-4 pt-2">
                   <a
-                    href={facebookUrl}
+                    href={FACEBOOK_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-paper-section text-paper-heading transition-colors hover:bg-paper-green hover:text-white"
@@ -174,7 +166,7 @@ export default function ContactPage() {
                     </svg>
                   </a>
                   <a
-                    href={instagramUrl}
+                    href={INSTAGRAM_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-paper-section text-paper-heading transition-colors hover:bg-paper-green hover:text-white"

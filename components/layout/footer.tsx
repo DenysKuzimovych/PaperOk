@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   BUSINESS_TAGLINE,
-  CONTACT_EMAIL_DEFAULT,
+  CONTACT_EMAIL,
   CONTACT_LOCATION,
   FACEBOOK_URL,
   FIXED_MENU,
@@ -10,18 +10,8 @@ import {
 } from "lib/constants";
 import { SiteLogo } from "components/site-logo";
 
-const contactEmail =
-  process.env.CONTACT_EMAIL ||
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL ||
-  CONTACT_EMAIL_DEFAULT;
-
 const contactPhone =
   process.env.NEXT_PUBLIC_CONTACT_PHONE || process.env.CONTACT_PHONE || "";
-
-const facebookUrl = process.env.NEXT_PUBLIC_FACEBOOK_URL || FACEBOOK_URL;
-const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL || INSTAGRAM_URL;
-const contactLocation =
-  process.env.NEXT_PUBLIC_CONTACT_LOCATION || CONTACT_LOCATION;
 
 
 
@@ -99,7 +89,7 @@ export default function Footer() {
 
           <div className="mt-5 flex gap-3">
 
-            <SocialIcon href={instagramUrl} label="Instagram">
+            <SocialIcon href={INSTAGRAM_URL} label="Instagram">
 
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
 
@@ -109,7 +99,7 @@ export default function Footer() {
 
             </SocialIcon>
 
-            <SocialIcon href={facebookUrl} label="Facebook">
+            <SocialIcon href={FACEBOOK_URL} label="Facebook">
 
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
 
@@ -253,13 +243,13 @@ export default function Footer() {
 
               <a
 
-                href={`mailto:${contactEmail}`}
+                href={`mailto:${CONTACT_EMAIL}`}
 
                 className="transition-colors hover:text-paper-green"
 
               >
 
-                {contactEmail}
+                {CONTACT_EMAIL}
 
               </a>
 
@@ -299,7 +289,7 @@ export default function Footer() {
 
               </svg>
 
-              <span>{contactLocation}</span>
+              <span>{CONTACT_LOCATION}</span>
 
             </li>
 
