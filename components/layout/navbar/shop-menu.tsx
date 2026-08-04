@@ -152,7 +152,7 @@ export function ShopDropdown({
             : "text-paper-text hover:text-paper-green"
         }`}
       >
-        Магазин
+        Категории
         <ChevronDownIcon
           className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
         />
@@ -207,7 +207,7 @@ export function ShopAccordion({
         aria-expanded={open}
         className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-base text-paper-text transition-colors hover:bg-paper-section hover:text-paper-green"
       >
-        <span>Магазин</span>
+        <span>Всички категории</span>
         <ChevronRightIcon
           className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`}
         />

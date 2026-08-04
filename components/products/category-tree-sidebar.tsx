@@ -53,6 +53,19 @@ export function CategoryTreeSidebar({
   tree: CategoryNode[];
   currentHandle?: string;
 }) {
+  const containsHandle = (node: CategoryNode, handle: string): boolean => {
+    if (node.handle === handle) return true;
+    return node.children.some((child) => containsHandle(child, handle));
+  };
+
+  // When user opens "Картички" / "Подаръци" / "Семенна хартия" (or any of their descendants),
+  // show only that root section subtree in the sidebar to keep the structure clear.
+  const rootForCurrent = currentHandle
+    ? tree.find((root) => containsHandle(root, currentHandle))
+    : null;
+
+  const displayTree = rootForCurrent ? [rootForCurrent] : tree;
+
   return (
     <nav aria-label="Категории">
       <ul className="space-y-1">
@@ -69,7 +82,7 @@ export function CategoryTreeSidebar({
             Всички продукти
           </Link>
         </li>
-        {tree.map((node) => (
+        {displayTree.map((node) => (
           <CategoryTreeItem
             key={node.id}
             node={node}
