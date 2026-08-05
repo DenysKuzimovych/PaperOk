@@ -174,11 +174,6 @@ export default function CartModal() {
                         currencyCode={cart.currency}
                       />
                     </div>
-                    <div className="mt-3 text-xs text-paper-muted">
-                      <p className="text-center">
-                        Цените се изчисляват по курс 1 EUR = 1.95583 BGN
-                      </p>
-                    </div>
                   </div>
                   <Link
                     href="/checkout"

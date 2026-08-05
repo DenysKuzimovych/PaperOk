@@ -10,12 +10,23 @@ import {
 } from "lib/speedy";
 import type { CreateOrderData } from "lib/supabase/orders";
 import type { CartItem } from "lib/types";
+import { isValidEmail, isValidPhone, VALIDATION_MESSAGES } from "lib/validation";
 
 export async function createOrder(
   data: CreateOrderData,
   cartItems?: CartItem[],
 ) {
   try {
+    if (!data.customer_name?.trim()) {
+      throw new Error(VALIDATION_MESSAGES.required);
+    }
+    if (!isValidEmail(data.customer_email || "")) {
+      throw new Error(VALIDATION_MESSAGES.email);
+    }
+    if (!isValidPhone(data.customer_phone || "")) {
+      throw new Error(VALIDATION_MESSAGES.phone);
+    }
+
     if (data.payment_method === "card" && !isStripeEnabled()) {
       throw new Error("Плащането с карта не е налично");
     }

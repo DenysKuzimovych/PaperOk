@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendBusinessInquiryEmail } from "lib/email";
 import { createContactInquiry } from "lib/supabase/admin-contact-inquiries";
+import { isValidEmail, isValidPhone, VALIDATION_MESSAGES } from "lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,13 @@ export async function POST(request: NextRequest) {
     const { name, company, email, phone, productType, quantity, message } =
       body;
 
-    if (!name || !email || !phone || !productType || !message) {
+    if (
+      !name?.trim() ||
+      !email?.trim() ||
+      !phone?.trim() ||
+      !productType?.trim() ||
+      !message?.trim()
+    ) {
       return NextResponse.json(
         {
           error:
@@ -18,10 +25,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Невалиден формат на имейл" },
+        { error: VALIDATION_MESSAGES.email },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json(
+        { error: VALIDATION_MESSAGES.phone },
         { status: 400 },
       );
     }

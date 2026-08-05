@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { Image } from "lib/types";
 import { ImageUploadButton } from "./image-upload-button";
 import { FieldHint } from "./field-hint";
+import { uploadImageFile } from "lib/upload-image";
 
 interface BlogFormData {
   slug: string;
@@ -105,18 +106,18 @@ export function BlogForm({ post }: { post?: any }) {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok) {
-        setFormData({
-          ...formData,
+      try {
+        const url = await uploadImageFile(file);
+        setFormData((prev) => ({
+          ...prev,
           images: [
-            ...formData.images,
-            { id: crypto.randomUUID(), url: data.url, altText: formData.title },
+            ...prev.images,
+            { id: crypto.randomUUID(), url, altText: prev.title },
           ],
-        });
+        }));
+        toast.success("Снимката е качена успешно");
+      } catch (error: any) {
+        toast.error(error.message || "Грешка при качване на снимка");
       }
     };
     input.click();

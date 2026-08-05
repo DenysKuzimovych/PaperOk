@@ -5,6 +5,7 @@ import {
   CONTACT_EMAIL,
   LOGO_WITH_BACKGROUND,
 } from "lib/constants";
+import { formatPrice } from "lib/utils";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -61,6 +62,8 @@ export interface OrderNotificationData {
   customerPhone?: string;
   customerAddress: string;
   totalPrice: number;
+  productsSubtotal?: number;
+  shippingPrice?: number;
   paymentMethod: "cash_on_delivery" | "card" | "bank_transfer";
   products: Array<{
     id: string;
@@ -204,16 +207,33 @@ export async function sendNewOrderNotification(
     const productsList = data.products
       .map(
         (product) =>
-          `  • ${escapeHtml(product.name)} - ${product.quantity}x ${product.price.toFixed(2)} лв = ${(product.price * product.quantity).toFixed(2)} лв`,
+          `  • ${escapeHtml(product.name)} - ${product.quantity}x ${formatPrice(product.price)} = ${formatPrice(product.price * product.quantity)}`,
       )
       .join("\n");
 
     const productsListHtml = data.products
       .map(
         (product) =>
-          `<li>${escapeHtml(product.name)} - ${product.quantity}x ${product.price.toFixed(2)} лв = ${(product.price * product.quantity).toFixed(2)} лв</li>`,
+          `<li>${escapeHtml(product.name)} - ${product.quantity}x ${formatPrice(product.price)} = ${formatPrice(product.price * product.quantity)}</li>`,
       )
       .join("");
+
+    const subtotalHtml =
+      data.productsSubtotal != null
+        ? `<p><strong>Междинна сума:</strong> ${formatPrice(data.productsSubtotal)}</p>`
+        : "";
+    const shippingHtml =
+      data.shippingPrice != null
+        ? `<p><strong>Доставка:</strong> ${formatPrice(data.shippingPrice)}</p>`
+        : "";
+    const subtotalText =
+      data.productsSubtotal != null
+        ? `Междинна сума: ${formatPrice(data.productsSubtotal)}\n`
+        : "";
+    const shippingText =
+      data.shippingPrice != null
+        ? `Доставка: ${formatPrice(data.shippingPrice)}\n`
+        : "";
 
     const { data: emailData, error } = await ensureResend().emails.send({
       from: fromAddress,
@@ -224,7 +244,9 @@ export async function sendNewOrderNotification(
         ${emailLogoHtml()}
         <h2>Нова поръчка</h2>
         <p><strong>Номер:</strong> ${escapeHtml(data.orderId)}</p>
-        <p><strong>Обща сума:</strong> ${data.totalPrice.toFixed(2)} лв</p>
+        ${subtotalHtml}
+        ${shippingHtml}
+        <p><strong>Обща сума:</strong> ${formatPrice(data.totalPrice)}</p>
         
         <h3>Клиент</h3>
         <p><strong>Име:</strong> ${escapeHtml(data.customerName)}</p>
@@ -254,7 +276,7 @@ export async function sendNewOrderNotification(
 Нова поръчка
 
 Номер: ${data.orderId}
-Обща сума: ${data.totalPrice.toFixed(2)} лв
+${subtotalText}${shippingText}Обща сума: ${formatPrice(data.totalPrice)}
 
 Клиент:
 Име: ${data.customerName}

@@ -37,14 +37,12 @@ const Label = ({
                   amount={compareAtAmount}
                   currencyCode={currencyCode}
                   currencyCodeClassName="hidden"
-                  showBgn={false}
                 />
               </span>
               <Price
                 amount={amount}
                 currencyCode={currencyCode}
                 currencyCodeClassName="hidden @[275px]/label:inline"
-                showBgn={true}
               />
             </div>
           ) : (
@@ -52,7 +50,6 @@ const Label = ({
               amount={amount}
               currencyCode={currencyCode}
               currencyCodeClassName="hidden @[275px]/label:inline"
-              showBgn={true}
             />
           )}
         </div>

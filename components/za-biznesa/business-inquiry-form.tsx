@@ -3,6 +3,18 @@
 import { PaperTexture } from "components/ui/paper-texture";
 import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import { useState } from "react";
+import {
+  FieldError,
+  FormField,
+  formControlClass,
+  formSelectClass,
+} from "components/forms/field";
+import {
+  type BusinessFields,
+  type FieldErrors,
+  hasFieldErrors,
+  validateBusinessInquiryForm,
+} from "lib/validation";
 
 const productTypes = [
   "Рекламни картички",
@@ -17,11 +29,6 @@ const productTypes = [
   "Друго",
 ];
 
-const inputClass =
-  "w-full rounded-xl border border-paper-border/80 bg-paper-bg/90 px-4 py-2.5 text-sm text-paper-heading shadow-[var(--paper-shadow)] transition-colors focus:border-paper-green focus:outline-none focus:ring-2 focus:ring-paper-green/25";
-
-const selectClass = "paper-select";
-
 export function BusinessInquiryForm() {
   const [formData, setFormData] = useState({
     name: "",
@@ -33,16 +40,34 @@ export function BusinessInquiryForm() {
     message: "",
     privacy_policy_accepted: false,
   });
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<BusinessFields>>(
+    {},
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const updateField = <K extends keyof typeof formData>(
+    key: K,
+    value: (typeof formData)[K],
+  ) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => {
+      const errorKey = key as BusinessFields;
+      if (!(errorKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[errorKey];
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.privacy_policy_accepted) {
-      setError("Моля, приемете Политиката за поверителност");
+    const errors = validateBusinessInquiryForm(formData);
+    setFieldErrors(errors);
+    if (hasFieldErrors(errors)) {
       return;
     }
 
@@ -70,6 +95,7 @@ export function BusinessInquiryForm() {
       }
 
       setSuccess(true);
+      setFieldErrors({});
       setFormData({
         name: "",
         company: "",
@@ -100,201 +126,175 @@ export function BusinessInquiryForm() {
         quality={80}
       />
       <div className="relative z-10">
-      <h2 className="font-heading mb-6 text-2xl font-bold text-paper-heading">
-        Форма за запитване
-      </h2>
+        <h2 className="font-heading mb-6 text-2xl font-bold text-paper-heading">
+          Форма за запитване
+        </h2>
 
-      {success && (
-        <div className="mb-4 rounded-lg border border-paper-green bg-paper-accent-bg p-4 text-paper-heading">
-          Запитването ви е изпратено успешно! Ще се свържем с вас скоро.
-        </div>
-      )}
+        {success && (
+          <div className="mb-4 rounded-lg border border-paper-green bg-paper-accent-bg p-4 text-paper-heading">
+            Запитването ви е изпратено успешно! Ще се свържем с вас скоро.
+          </div>
+        )}
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-400 bg-red-50 p-4 text-red-800">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-400 bg-red-50 p-4 text-red-800">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="biz-name"
-              className="mb-1 block text-sm font-medium text-paper-heading"
-            >
-              Име *
-            </label>
-            <input
-              type="text"
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
               id="biz-name"
+              label="Име"
               required
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="biz-company"
-              className="mb-1 block text-sm font-medium text-paper-heading"
+              error={fieldErrors.name}
             >
-              Фирма
-            </label>
-            <input
-              type="text"
-              id="biz-company"
-              value={formData.company}
-              onChange={(e) =>
-                setFormData({ ...formData, company: e.target.value })
-              }
-              className={inputClass}
-            />
+              <input
+                type="text"
+                id="biz-name"
+                value={formData.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                aria-invalid={!!fieldErrors.name}
+                className={formControlClass(!!fieldErrors.name, "rounded-xl")}
+              />
+            </FormField>
+            <FormField id="biz-company" label="Фирма">
+              <input
+                type="text"
+                id="biz-company"
+                value={formData.company}
+                onChange={(e) => updateField("company", e.target.value)}
+                className={formControlClass(false, "rounded-xl")}
+              />
+            </FormField>
           </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="biz-email"
-              className="mb-1 block text-sm font-medium text-paper-heading"
-            >
-              Имейл *
-            </label>
-            <input
-              type="email"
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
               id="biz-email"
+              label="Имейл"
               required
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="biz-phone"
-              className="mb-1 block text-sm font-medium text-paper-heading"
+              error={fieldErrors.email}
             >
-              Телефон *
-            </label>
-            <input
-              type="tel"
+              <input
+                type="email"
+                id="biz-email"
+                value={formData.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                aria-invalid={!!fieldErrors.email}
+                className={formControlClass(!!fieldErrors.email, "rounded-xl")}
+              />
+            </FormField>
+            <FormField
               id="biz-phone"
+              label="Телефон"
               required
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              className={inputClass}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="biz-product"
-              className="mb-1 block text-sm font-medium text-paper-heading"
+              error={fieldErrors.phone}
             >
-              Вид продукт *
-            </label>
-            <select
+              <input
+                type="tel"
+                id="biz-phone"
+                value={formData.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
+                placeholder="08XXXXXXXX"
+                aria-invalid={!!fieldErrors.phone}
+                className={formControlClass(!!fieldErrors.phone, "rounded-xl")}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
               id="biz-product"
+              label="Вид продукт"
               required
-              value={formData.productType}
-              onChange={(e) =>
-                setFormData({ ...formData, productType: e.target.value })
-              }
-              className={selectClass}
+              error={fieldErrors.productType}
             >
-              <option value="">Изберете вид продукт</option>
-              {productTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+              <select
+                id="biz-product"
+                value={formData.productType}
+                onChange={(e) => updateField("productType", e.target.value)}
+                aria-invalid={!!fieldErrors.productType}
+                className={formSelectClass(!!fieldErrors.productType)}
+              >
+                <option value="">Изберете вид продукт</option>
+                {productTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField id="biz-quantity" label="Количество">
+              <input
+                type="text"
+                id="biz-quantity"
+                placeholder="напр. 100, 500, 1000"
+                value={formData.quantity}
+                onChange={(e) => updateField("quantity", e.target.value)}
+                className={formControlClass(false, "rounded-xl")}
+              />
+            </FormField>
           </div>
+
+          <FormField
+            id="biz-message"
+            label="Съобщение"
+            required
+            error={fieldErrors.message}
+          >
+            <textarea
+              id="biz-message"
+              rows={5}
+              value={formData.message}
+              onChange={(e) => updateField("message", e.target.value)}
+              aria-invalid={!!fieldErrors.message}
+              className={formControlClass(!!fieldErrors.message, "rounded-xl")}
+            />
+          </FormField>
+
           <div>
             <label
-              htmlFor="biz-quantity"
-              className="mb-1 block text-sm font-medium text-paper-heading"
+              className={`flex cursor-pointer items-start gap-3 rounded-lg p-2 ${
+                fieldErrors.privacy_policy_accepted
+                  ? "border border-red-500 bg-red-50/50"
+                  : ""
+              }`}
             >
-              Количество
+              <input
+                type="checkbox"
+                checked={formData.privacy_policy_accepted}
+                onChange={(e) =>
+                  updateField("privacy_policy_accepted", e.target.checked)
+                }
+                aria-invalid={!!fieldErrors.privacy_policy_accepted}
+                className="mt-1 h-4 w-4 rounded border-paper-border text-paper-green focus:ring-paper-green"
+              />
+              <span className="text-sm text-paper-text">
+                Съгласен съм с{" "}
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-paper-green underline"
+                >
+                  Политиката за поверителност
+                </a>
+                . *
+              </span>
             </label>
-            <input
-              type="text"
-              id="biz-quantity"
-              placeholder="напр. 100, 500, 1000"
-              value={formData.quantity}
-              onChange={(e) =>
-                setFormData({ ...formData, quantity: e.target.value })
-              }
-              className={inputClass}
-            />
+            <FieldError message={fieldErrors.privacy_policy_accepted} />
           </div>
-        </div>
 
-        <div>
-          <label
-            htmlFor="biz-message"
-            className="mb-1 block text-sm font-medium text-paper-heading"
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn-primary w-full rounded-full disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Съобщение *
-          </label>
-          <textarea
-            id="biz-message"
-            required
-            rows={5}
-            value={formData.message}
-            onChange={(e) =>
-              setFormData({ ...formData, message: e.target.value })
-            }
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              required
-              checked={formData.privacy_policy_accepted}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  privacy_policy_accepted: e.target.checked,
-                })
-              }
-              className="mt-1 h-4 w-4 rounded border-paper-border text-paper-green focus:ring-paper-green"
-            />
-            <span className="text-sm text-paper-text">
-              Съгласен съм с{" "}
-              <a
-                href="/privacy-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-paper-green underline"
-              >
-                Политиката за поверителност
-              </a>
-              . *
-            </span>
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting || !formData.privacy_policy_accepted}
-          className="btn-primary w-full rounded-full disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isSubmitting ? "Изпращане..." : "Изпрати запитване"}
-        </button>
-      </form>
+            {isSubmitting ? "Изпращане..." : "Изпрати запитване"}
+          </button>
+        </form>
       </div>
     </div>
   );

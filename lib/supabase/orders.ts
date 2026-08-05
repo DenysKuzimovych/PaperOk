@@ -204,6 +204,14 @@ export async function fulfillPaidOrder(orderId: string) {
       customerPhone: updated.customer_phone || undefined,
       customerAddress: updated.customer_address,
       totalPrice: Number(updated.total_price),
+      productsSubtotal:
+        updated.products_subtotal != null
+          ? Number(updated.products_subtotal)
+          : undefined,
+      shippingPrice:
+        updated.shipping_price != null
+          ? Number(updated.shipping_price)
+          : undefined,
       paymentMethod: updated.payment_method as
         | "cash_on_delivery"
         | "card"
@@ -251,6 +259,12 @@ export async function fulfillCodOrder(orderId: string) {
     customerPhone: order.customer_phone || undefined,
     customerAddress: order.customer_address,
     totalPrice: Number(order.total_price),
+    productsSubtotal:
+      order.products_subtotal != null
+        ? Number(order.products_subtotal)
+        : undefined,
+    shippingPrice:
+      order.shipping_price != null ? Number(order.shipping_price) : undefined,
     paymentMethod: (order.payment_method || "cash_on_delivery") as
       | "cash_on_delivery"
       | "card"

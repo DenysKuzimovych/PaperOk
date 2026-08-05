@@ -2,6 +2,7 @@
 
 import { useState, useRef, useId } from "react";
 import { toast } from "sonner";
+import { uploadImageFile } from "lib/upload-image";
 
 interface ImageUploadButtonProps {
   onUploadComplete: (url: string) => void;
@@ -25,50 +26,17 @@ export function ImageUploadButton({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Моля, избери валиден файл със снимка");
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Файлът е твърде голям. Максималният размер е 10MB");
-      return;
-    }
-
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Failed to parse response:", parseError);
-        throw new Error("Грешка при обработка на отговора от сървъра");
-      }
-
-      if (!response.ok) {
-        console.error("Upload failed:", data);
-        throw new Error(data.error || `Грешка при качване на снимка (${response.status})`);
-      }
-
-      onUploadComplete(data.url);
+      const url = await uploadImageFile(file);
+      onUploadComplete(url);
       toast.success("Снимката е качена успешно");
     } catch (error: any) {
       console.error("Error uploading image:", error);
       toast.error(error.message || "Грешка при качване на снимка");
     } finally {
       setUploading(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }

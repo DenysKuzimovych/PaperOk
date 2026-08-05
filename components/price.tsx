@@ -1,34 +1,21 @@
 import clsx from "clsx";
 
-const EUR_TO_BGN_RATE = 1.95583; // Exchange rate: 1 EUR = 1.95583 BGN
-
 const Price = ({
   amount,
   className,
   currencyCode = "EUR",
   currencyCodeClassName,
-  showBgn = true,
 }: {
   amount: string;
   className?: string;
   currencyCode: string;
   currencyCodeClassName?: string;
-  showBgn?: boolean;
 } & React.ComponentProps<"span">) => {
-  const eurAmount = parseFloat(amount);
-  const bgnAmount = eurAmount * EUR_TO_BGN_RATE;
-
-  const formattedEur = new Intl.NumberFormat("bg-BG", {
+  const formatted = new Intl.NumberFormat("bg-BG", {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",
-  }).format(eurAmount);
-
-  const formattedBgn = new Intl.NumberFormat("bg-BG", {
-    style: "currency",
-    currency: "BGN",
-    currencyDisplay: "narrowSymbol",
-  }).format(bgnAmount);
+  }).format(parseFloat(amount));
 
   return (
     <span
@@ -36,16 +23,11 @@ const Price = ({
       className={clsx("inline-block whitespace-nowrap", className)}
     >
       <span>
-        {formattedEur}
+        {formatted}
         <span className={clsx("ml-1 inline", currencyCodeClassName)}>
           {currencyCode}
         </span>
       </span>
-      {showBgn && (
-        <span className="ml-1.5 text-[0.65em] opacity-70">
-          ({formattedBgn})
-        </span>
-      )}
     </span>
   );
 };

@@ -11,6 +11,17 @@ import {
   SpeedyShippingForm,
   type SpeedyShippingSelection,
 } from "components/checkout/speedy-shipping-form";
+import {
+  FieldError,
+  FormField,
+  formControlClass,
+} from "components/forms/field";
+import {
+  type CheckoutFields,
+  type FieldErrors,
+  hasFieldErrors,
+  validateCheckoutForm,
+} from "lib/validation";
 
 type PaymentMethod = "cash_on_delivery" | "card";
 
@@ -23,6 +34,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<CheckoutFields>>(
+    {},
+  );
   const [shipping, setShipping] = useState<SpeedyShippingSelection | null>(
     null,
   );
@@ -35,6 +49,32 @@ export default function CheckoutPage() {
     comment: "",
     privacy_policy_accepted: false,
   });
+
+  const updateField = <K extends keyof typeof formData>(
+    key: K,
+    value: (typeof formData)[K],
+  ) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => {
+      const errorKey = key as CheckoutFields;
+      if (!(errorKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[errorKey];
+      return next;
+    });
+  };
+
+  const handleShippingChange = (value: SpeedyShippingSelection | null) => {
+    setShipping(value);
+    if (value) {
+      setFieldErrors((prev) => {
+        if (!prev.shipping) return prev;
+        const next = { ...prev };
+        delete next.shipping;
+        return next;
+      });
+    }
+  };
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -66,12 +106,15 @@ export default function CheckoutPage() {
     e.preventDefault();
     setError(null);
 
-    if (!shipping) {
-      setError("Моля, изберете населено място и начин на доставка");
-      return;
-    }
-    if (!formData.customer_phone.trim()) {
-      setError("Телефонът е задължителен за доставка със Speedy");
+    const errors = validateCheckoutForm({
+      customer_name: formData.customer_name,
+      customer_email: formData.customer_email,
+      customer_phone: formData.customer_phone,
+      hasShipping: !!shipping,
+      privacy_policy_accepted: formData.privacy_policy_accepted,
+    });
+    setFieldErrors(errors);
+    if (hasFieldErrors(errors) || !shipping) {
       return;
     }
 
@@ -159,6 +202,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             <form
               onSubmit={handleSubmit}
+              noValidate
               className="rounded-lg bg-paper-white p-6 shadow"
             >
               <h2 className="mb-6 text-xl font-semibold text-paper-heading">
@@ -172,95 +216,78 @@ export default function CheckoutPage() {
               ) : null}
 
               <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="customer_name"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Име и фамилия *
-                  </label>
+                <FormField
+                  id="customer_name"
+                  label="Име и фамилия"
+                  required
+                  error={fieldErrors.customer_name}
+                >
                   <input
                     type="text"
                     id="customer_name"
-                    required
                     value={formData.customer_name}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        customer_name: e.target.value,
-                      })
+                      updateField("customer_name", e.target.value)
                     }
-                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
+                    aria-invalid={!!fieldErrors.customer_name}
+                    className={formControlClass(!!fieldErrors.customer_name)}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label
-                    htmlFor="customer_email"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Имейл *
-                  </label>
+                <FormField
+                  id="customer_email"
+                  label="Имейл"
+                  required
+                  error={fieldErrors.customer_email}
+                >
                   <input
                     type="email"
                     id="customer_email"
-                    required
                     value={formData.customer_email}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        customer_email: e.target.value,
-                      })
+                      updateField("customer_email", e.target.value)
                     }
-                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
+                    aria-invalid={!!fieldErrors.customer_email}
+                    className={formControlClass(!!fieldErrors.customer_email)}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label
-                    htmlFor="customer_phone"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Телефон *
-                  </label>
+                <FormField
+                  id="customer_phone"
+                  label="Телефон"
+                  required
+                  error={fieldErrors.customer_phone}
+                >
                   <input
                     type="tel"
                     id="customer_phone"
-                    required
                     value={formData.customer_phone}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        customer_phone: e.target.value,
-                      })
+                      updateField("customer_phone", e.target.value)
                     }
-                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
                     placeholder="08XXXXXXXX"
+                    aria-invalid={!!fieldErrors.customer_phone}
+                    className={formControlClass(!!fieldErrors.customer_phone)}
                   />
-                </div>
-
-                <SpeedyShippingForm
-                  itemCount={itemCount}
-                  onChange={setShipping}
-                />
+                </FormField>
 
                 <div>
-                  <label
-                    htmlFor="comment"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Коментар (по избор)
-                  </label>
+                  <SpeedyShippingForm
+                    itemCount={itemCount}
+                    onChange={handleShippingChange}
+                  />
+                  <FieldError message={fieldErrors.shipping} />
+                </div>
+
+                <FormField id="comment" label="Коментар (по избор)">
                   <textarea
                     id="comment"
                     rows={3}
                     value={formData.comment}
-                    onChange={(e) =>
-                      setFormData({ ...formData, comment: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
+                    onChange={(e) => updateField("comment", e.target.value)}
+                    className={formControlClass(false)}
                   />
-                </div>
+                </FormField>
 
                 <div>
                   <label className="mb-3 block text-sm font-medium text-paper-heading">
@@ -276,10 +303,10 @@ export default function CheckoutPage() {
                           formData.payment_method === "cash_on_delivery"
                         }
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            payment_method: e.target.value as PaymentMethod,
-                          })
+                          updateField(
+                            "payment_method",
+                            e.target.value as PaymentMethod,
+                          )
                         }
                         className="mr-3"
                       />
@@ -301,10 +328,10 @@ export default function CheckoutPage() {
                           value="card"
                           checked={formData.payment_method === "card"}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              payment_method: e.target.value as PaymentMethod,
-                            })
+                            updateField(
+                              "payment_method",
+                              e.target.value as PaymentMethod,
+                            )
                           }
                           className="mr-3"
                         />
@@ -322,17 +349,23 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="pt-4">
-                  <label className="flex cursor-pointer items-start space-x-3">
+                  <label
+                    className={`flex cursor-pointer items-start space-x-3 rounded-lg p-2 ${
+                      fieldErrors.privacy_policy_accepted
+                        ? "border border-red-500 bg-red-50/50"
+                        : ""
+                    }`}
+                  >
                     <input
                       type="checkbox"
-                      required
                       checked={formData.privacy_policy_accepted}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          privacy_policy_accepted: e.target.checked,
-                        })
+                        updateField(
+                          "privacy_policy_accepted",
+                          e.target.checked,
+                        )
                       }
+                      aria-invalid={!!fieldErrors.privacy_policy_accepted}
                       className="mt-1 h-4 w-4 rounded border-paper-border text-paper-green focus:ring-paper-green"
                     />
                     <span className="text-sm text-paper-heading">
@@ -349,15 +382,12 @@ export default function CheckoutPage() {
                       на поръчката. *
                     </span>
                   </label>
+                  <FieldError message={fieldErrors.privacy_policy_accepted} />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={
-                    isSubmitting ||
-                    !formData.privacy_policy_accepted ||
-                    !shipping
-                  }
+                  disabled={isSubmitting}
                   className="btn-primary flex w-full items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
@@ -427,11 +457,6 @@ export default function CheckoutPage() {
                     currencyCode={cart.currency}
                     className="text-paper-green"
                   />
-                </div>
-                <div className="mt-4 border-t border-paper-border pt-4">
-                  <p className="text-center text-xs text-paper-muted">
-                    Цените се изчисляват по курс 1 EUR = 1.95583 BGN
-                  </p>
                 </div>
               </div>
             </div>

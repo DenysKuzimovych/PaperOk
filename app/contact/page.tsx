@@ -16,11 +16,19 @@ import {
 } from "lib/constants";
 import { useState } from "react";
 import { EnvelopeIcon, PhoneIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import {
+  FieldError,
+  FormField,
+  formControlClass,
+} from "components/forms/field";
+import {
+  type ContactFields,
+  type FieldErrors,
+  hasFieldErrors,
+  validateContactForm,
+} from "lib/validation";
 
 const contactPhone = process.env.NEXT_PUBLIC_CONTACT_PHONE || "";
-
-const inputClass =
-  "w-full rounded-lg border border-paper-border bg-paper-white px-4 py-2 text-paper-heading focus:border-paper-green focus:outline-none focus:ring-1 focus:ring-paper-green";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -30,20 +38,37 @@ export default function ContactPage() {
     message: "",
     privacy_policy_accepted: false,
   });
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<ContactFields>>(
+    {},
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const updateField = <K extends keyof typeof formData>(
+    key: K,
+    value: (typeof formData)[K],
+  ) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as ContactFields];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
-    if (!formData.privacy_policy_accepted) {
-      setError("Моля, приемете Политиката за поверителност");
-      setIsSubmitting(false);
+    const errors = validateContactForm(formData);
+    setFieldErrors(errors);
+    if (hasFieldErrors(errors)) {
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/contact", {
@@ -64,6 +89,7 @@ export default function ContactPage() {
       }
 
       setSuccess(true);
+      setFieldErrors({});
       setFormData({
         name: "",
         email: "",
@@ -253,95 +279,90 @@ export default function ContactPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Име *
-                  </label>
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <FormField
+                  id="name"
+                  label="Име"
+                  required
+                  error={fieldErrors.name}
+                >
                   <input
                     type="text"
                     id="name"
-                    required
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className={inputClass}
+                    onChange={(e) => updateField("name", e.target.value)}
+                    aria-invalid={!!fieldErrors.name}
+                    className={formControlClass(!!fieldErrors.name)}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Имейл *
-                  </label>
+                <FormField
+                  id="email"
+                  label="Имейл"
+                  required
+                  error={fieldErrors.email}
+                >
                   <input
                     type="email"
                     id="email"
-                    required
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className={inputClass}
+                    onChange={(e) => updateField("email", e.target.value)}
+                    aria-invalid={!!fieldErrors.email}
+                    className={formControlClass(!!fieldErrors.email)}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
-                  >
-                    Телефон *
-                  </label>
+                <FormField
+                  id="phone"
+                  label="Телефон"
+                  required
+                  error={fieldErrors.phone}
+                >
                   <input
                     type="tel"
                     id="phone"
-                    required
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className={inputClass}
+                    onChange={(e) => updateField("phone", e.target.value)}
+                    placeholder="08XXXXXXXX"
+                    aria-invalid={!!fieldErrors.phone}
+                    className={formControlClass(!!fieldErrors.phone)}
                   />
-                </div>
+                </FormField>
+
+                <FormField
+                  id="message"
+                  label="Съобщение"
+                  required
+                  error={fieldErrors.message}
+                >
+                  <textarea
+                    id="message"
+                    rows={5}
+                    value={formData.message}
+                    onChange={(e) => updateField("message", e.target.value)}
+                    aria-invalid={!!fieldErrors.message}
+                    className={formControlClass(!!fieldErrors.message)}
+                  />
+                </FormField>
 
                 <div>
                   <label
-                    htmlFor="message"
-                    className="mb-1 block text-sm font-medium text-paper-heading"
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg p-2 ${
+                      fieldErrors.privacy_policy_accepted
+                        ? "border border-red-500 bg-red-50/50"
+                        : ""
+                    }`}
                   >
-                    Съобщение *
-                  </label>
-                  <textarea
-                    id="message"
-                    required
-                    rows={5}
-                    value={formData.message}
-                    onChange={(e) =>
-                      setFormData({ ...formData, message: e.target.value })
-                    }
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
-                      required
                       checked={formData.privacy_policy_accepted}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          privacy_policy_accepted: e.target.checked,
-                        })
+                        updateField(
+                          "privacy_policy_accepted",
+                          e.target.checked,
+                        )
                       }
+                      aria-invalid={!!fieldErrors.privacy_policy_accepted}
                       className="mt-1 h-4 w-4 rounded border-paper-border text-paper-green focus:ring-paper-green"
                     />
                     <span className="text-sm text-paper-text">
@@ -357,11 +378,12 @@ export default function ContactPage() {
                       и се съгласявам обработката на моите лични данни. *
                     </span>
                   </label>
+                  <FieldError message={fieldErrors.privacy_policy_accepted} />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !formData.privacy_policy_accepted}
+                  disabled={isSubmitting}
                   className="btn-primary w-full rounded-full disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? "Изпращане..." : "Изпрати съобщение"}

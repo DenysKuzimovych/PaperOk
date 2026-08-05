@@ -13,6 +13,7 @@ import {
   type FlatCategory,
 } from "lib/category-tree";
 import { formatHandle, generateHandleFromTitle } from "lib/slug";
+import { uploadImageFile } from "lib/upload-image";
 
 interface ProductFormData {
   handle: string;
@@ -149,18 +150,6 @@ export function ProductForm({ product, collections }: ProductFormProps) {
       const file = target.files?.[0];
       if (!file) return;
 
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Моля, избери валиден файл със снимка");
-        return;
-      }
-
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("Файлът е твърде голям. Максималният размер е 10MB");
-        return;
-      }
-
       // Create a new image entry with temporary ID
       const tempId = `img-${Date.now()}`;
       const newImage: Image = {
@@ -168,36 +157,16 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         url: "",
         altText: formData.title,
       };
-      
+
       // Calculate the new index before adding
       const newIndex = formData.images.length;
-      
+
       // Add the image to the list immediately (will show loading state)
       setFormData((prev) => ({ ...prev, images: [...prev.images, newImage] }));
       setUploadingImages((prev) => new Set(prev).add(tempId));
 
       try {
-        // Upload the file
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
-
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-
-        let data;
-        try {
-          data = await response.json();
-        } catch (parseError) {
-          console.error("Failed to parse response:", parseError);
-          throw new Error("Грешка при обработка на отговора от сървъра");
-        }
-
-        if (!response.ok) {
-          console.error("Upload failed:", data);
-          throw new Error(data.error || `Грешка при качване на снимка (${response.status})`);
-        }
+        const url = await uploadImageFile(file);
 
         // Update the image with the uploaded URL
         setFormData((prev) => {
@@ -205,18 +174,18 @@ export function ProductForm({ product, collections }: ProductFormProps) {
           const existingImage = updated[newIndex];
           updated[newIndex] = {
             id: existingImage?.id || tempId,
-            url: data.url,
+            url,
             altText: prev.title,
           };
           return { ...prev, images: updated };
         });
-        
+
         setUploadingImages((prev) => {
           const next = new Set(prev);
           next.delete(tempId);
           return next;
         });
-        
+
         toast.success("Снимката е качена успешно");
       } catch (error: any) {
         console.error("Error uploading image:", error);

@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendContactFormEmail } from "lib/email";
 import { createContactInquiry } from "lib/supabase/admin-contact-inquiries";
+import { isValidEmail, isValidPhone, VALIDATION_MESSAGES } from "lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, email, phone, message, subject } = body;
 
-    if (!name || !email || !phone || !message) {
+    if (!name?.trim() || !email?.trim() || !phone?.trim() || !message?.trim()) {
       return NextResponse.json(
         { error: "Име, имейл, телефон и съобщение са задължителни" },
         { status: 400 },
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Невалиден формат на имейл" },
+        { error: VALIDATION_MESSAGES.email },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json(
+        { error: VALIDATION_MESSAGES.phone },
         { status: 400 },
       );
     }
