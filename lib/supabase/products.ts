@@ -1,8 +1,5 @@
 import type { Product, Collection } from "lib/types";
-import {
-  filterCategoriesWithProducts,
-  getHandlesForCollectionFilter,
-} from "lib/category-tree";
+import { getHandlesForCollectionFilter } from "lib/category-tree";
 import { isProductPlantable } from "lib/product-plantable";
 import { cache } from "react";
 import { createServiceClient } from "./service";
@@ -310,51 +307,12 @@ export async function getCollections(): Promise<Collection[]> {
 }
 
 /**
- * Storefront categories only — hides empty categories (no products
- * on the category itself and none in any subcategory).
+ * Storefront category tree for nav + sidebar.
+ * Includes empty subcategories so shoppers can browse the full structure
+ * (e.g. Подаръци → Тест before products are assigned).
  */
 export async function getStorefrontCollections(): Promise<Collection[]> {
-  try {
-    const collections = await getCollections();
-    if (collections.length === 0) return [];
-
-    const supabase = createServiceClient();
-    const { data: products, error } = await supabase
-      .from("products")
-      .select("category")
-      .eq("available", true)
-      .not("category", "is", null);
-
-    if (error) {
-      console.error("Error fetching product categories:", error);
-      return collections;
-    }
-
-    const handlesWithProducts = new Set<string>();
-    for (const p of products || []) {
-      if (p.category) handlesWithProducts.add(p.category);
-    }
-
-    const flat = collections.map((c) => ({
-      id: c.id,
-      handle: c.handle,
-      title: c.title,
-      description: c.description,
-      position: c.position ?? 0,
-      parent_id: c.parentId ?? null,
-    }));
-
-    const visible = filterCategoriesWithProducts(flat, handlesWithProducts);
-    const visibleIds = new Set(visible.map((v) => v.id));
-
-    return collections.filter((c) => visibleIds.has(c.id));
-  } catch (error) {
-    if (isReactPostpone(error)) {
-      throw error;
-    }
-    console.error("Error in getStorefrontCollections:", error);
-    return getCollections();
-  }
+  return getCollections();
 }
 
 export async function getCollectionProducts(handle: string): Promise<Product[]> {

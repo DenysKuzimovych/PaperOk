@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendBusinessInquiryEmail } from "lib/email";
+import { createContactInquiry } from "lib/supabase/admin-contact-inquiries";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const subject = `Бизнес: ${String(productType).trim()}`;
+    const messageParts = [
+      company?.trim() ? `Фирма: ${String(company).trim()}` : null,
+      `Вид продукт: ${String(productType).trim()}`,
+      quantity?.trim() ? `Количество: ${String(quantity).trim()}` : null,
+      "",
+      String(message).trim(),
+    ].filter((line) => line !== null);
+
+    // Persist first — inquiries must appear in admin even if email fails
+    await createContactInquiry({
+      name: String(name).trim(),
+      email: String(email).trim(),
+      phone: String(phone).trim(),
+      subject,
+      message: messageParts.join("\n"),
+    });
+
     const result = await sendBusinessInquiryEmail({
       name,
       company,
@@ -36,9 +55,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Неуспешно изпращане на имейл. Моля, опитайте отново." },
-        { status: 502 },
+      console.warn(
+        "Business inquiry saved, but email notification failed:",
+        result.error,
       );
     }
 
@@ -49,7 +68,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error processing business inquiry:", error);
     return NextResponse.json(
-      { error: "Failed to send business inquiry email" },
+      {
+        error:
+          "Грешка при изпращане на запитването. Моля, опитайте отново.",
+      },
       { status: 500 },
     );
   }

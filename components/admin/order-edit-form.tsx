@@ -202,7 +202,6 @@ export function OrderEditForm({ order }: OrderEditFormProps) {
           disabled={loading}
         >
           <option value="cash_on_delivery">Наложен платеж</option>
-          <option value="bank_transfer">Банков превод</option>
           <option value="card">Плащане с карта</option>
         </select>
       </div>

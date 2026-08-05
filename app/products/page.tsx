@@ -85,7 +85,7 @@ export default async function ProductsPage({
 
   return (
     <>
-      <div className="relative overflow-hidden bg-paper-bg">
+      <div className="relative z-20 overflow-x-hidden bg-paper-bg">
         <PaperTexture
           src={PAPER_BACKGROUNDS.plain}
           overlay={PAPER_OVERLAYS.cream}
@@ -94,10 +94,10 @@ export default async function ProductsPage({
         />
         <div className="relative z-10 mx-auto flex max-w-7xl flex-row gap-4 px-3 py-6 text-paper-heading sm:gap-6 sm:px-4 sm:py-8 md:gap-8">
         {/* Category Tree Sidebar — thin column on the left (mobile + desktop) */}
-        <aside className="w-[7.5rem] flex-none sm:w-40 md:w-56 lg:w-64">
+        <aside className="w-[8.25rem] flex-none sm:w-44 md:w-56 lg:w-64">
           <div className="sticky top-4">
             <Reveal variant="left">
-              <h2 className="mb-3 text-sm font-semibold text-paper-heading sm:mb-4 sm:text-lg">
+              <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide text-paper-heading sm:mb-4 sm:text-lg">
                 Категории
               </h2>
               <CategoryTreeSidebar
@@ -109,12 +109,12 @@ export default async function ProductsPage({
         </aside>
 
         {/* Main Content — products on the right */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-visible">
           <Reveal variant="fade">
             <Breadcrumb path={breadcrumbPath} />
           </Reveal>
 
-          <Reveal className="mb-8" delay={80}>
+          <Reveal className="mb-4" delay={80}>
             <h1 className="font-heading text-3xl font-bold text-paper-heading">
               {currentCollection?.title || "Всички продукти"}
             </h1>
@@ -129,27 +129,31 @@ export default async function ProductsPage({
                 {products.length === 1 ? "продукт" : "продукта"}
               </p>
             )}
-            <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <div className="w-full sm:w-auto">
-                <SortFilter />
-              </div>
-              <div className="w-full sm:w-auto">
-                <FilterButton
-                  collections={collections}
-                  currentFilters={currentFilters}
-                />
-              </div>
-            </div>
           </Reveal>
+
+          {/* High z-index so sort/filter panels sit above products and footer */}
+          <div className="relative z-50 mb-8 flex flex-row items-center justify-end gap-2 overflow-visible sm:gap-3">
+            <div className="relative z-50 shrink-0">
+              <SortFilter />
+            </div>
+            <div className="relative z-50 shrink-0">
+              <FilterButton
+                collections={collections}
+                currentFilters={currentFilters}
+              />
+            </div>
+          </div>
 
           {products.length === 0 ? (
             <p className="py-3 text-lg text-paper-text">
               Няма намерени продукти
             </p>
           ) : (
-            <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <ProductGridItems products={products} />
-            </Grid>
+            <div className="relative z-0">
+              <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <ProductGridItems products={products} />
+              </Grid>
+            </div>
           )}
         </div>
         </div>

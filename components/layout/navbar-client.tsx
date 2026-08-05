@@ -22,17 +22,27 @@ function collectionFromPath(path: string): string | null {
   return new URLSearchParams(path.split("?")[1] || "").get("collection");
 }
 
+function containsHandle(node: CategoryNode, handle: string): boolean {
+  if (node.handle === handle) return true;
+  return node.children.some((child) => containsHandle(child, handle));
+}
+
 function isNavActive(
   href: string,
   pathname: string,
   searchParams: URLSearchParams,
+  sectionRoot?: CategoryNode | null,
 ): boolean {
   if (href === "/") return pathname === "/";
   const wanted = collectionFromPath(href);
   if (wanted) {
-    return (
-      pathname === "/products" && searchParams.get("collection") === wanted
-    );
+    if (pathname !== "/products") return false;
+    const current = searchParams.get("collection");
+    if (!current) return false;
+    if (current === wanted) return true;
+    // Highlight root (e.g. Подаръци) when viewing a subcategory (Тест)
+    if (sectionRoot) return containsHandle(sectionRoot, current);
+    return false;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -50,10 +60,18 @@ function NavUnderline({ active }: { active: boolean }) {
   );
 }
 
-function NavLink({ href, title }: { href: string; title: string }) {
+function NavLink({
+  href,
+  title,
+  sectionRoot,
+}: {
+  href: string;
+  title: string;
+  sectionRoot?: CategoryNode | null;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isActive = isNavActive(href, pathname, searchParams);
+  const isActive = isNavActive(href, pathname, searchParams, sectionRoot);
 
   return (
     <Link
@@ -156,12 +174,12 @@ function CategoryNavItem({
   const ref = useRef<HTMLLIElement>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isActive = isNavActive(href, pathname, searchParams);
 
   const tree = buildCategoryTree(categories);
-  const root = tree.find((n) => n.handle === rootHandle);
+  const root = tree.find((n) => n.handle === rootHandle) ?? null;
   const children = root?.children ?? [];
   const hasTree = children.length > 0;
+  const isActive = isNavActive(href, pathname, searchParams, root);
 
   useEffect(() => {
     setOpen(false);
@@ -181,7 +199,7 @@ function CategoryNavItem({
   if (!hasTree) {
     return (
       <li className="group">
-        <NavLink href={href} title={title} />
+        <NavLink href={href} title={title} sectionRoot={root} />
       </li>
     );
   }
@@ -233,7 +251,7 @@ function CategoryNavItem({
               onClick={() => setOpen(false)}
               className="mb-2.5 block rounded-xl border border-paper-green/15 bg-paper-accent-bg/80 px-3.5 py-2.5 text-sm font-medium text-paper-heading transition-colors hover:border-paper-green/30 hover:bg-paper-accent-bg hover:text-paper-green"
             >
-              Всички в {title}
+              Виж всички {title.toLowerCase()}
             </Link>
             <p className="mb-2 px-1.5 font-heading text-[11px] tracking-wider text-paper-muted uppercase">
               Категории
@@ -328,7 +346,7 @@ export function NavbarClient() {
   const [categories, setCategories] = useState<FlatCategory[]>([]);
 
   useEffect(() => {
-    fetch("/api/collections")
+    fetch("/api/collections", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (!Array.isArray(data)) return;
@@ -389,7 +407,7 @@ export function NavbarClient() {
           <CartModal />
           <div className="lg:hidden">
             <Suspense fallback={null}>
-              <MobileMenu menu={[...FIXED_MENU]} />
+              <MobileMenu menu={[...FIXED_MENU]} categories={categories} />
             </Suspense>
           </div>
         </div>

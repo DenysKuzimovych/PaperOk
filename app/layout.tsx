@@ -87,7 +87,7 @@ export default async function RootLayout({
       >
         <CartProvider>
           <ConditionalNavbar />
-          <main suppressHydrationWarning>
+          <main>
             {children}
             <Toaster closeButton />
           </main>

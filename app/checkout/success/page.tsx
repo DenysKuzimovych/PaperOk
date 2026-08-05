@@ -124,12 +124,6 @@ export default async function CheckoutSuccessPage({
                   Ще платите при получаване на поръчката.
                 </p>
               )}
-              {order.payment_method === "bank_transfer" && (
-                <p className="text-sm text-paper-text">
-                  Ще получите данни за банков превод след потвърждение на
-                  поръчката.
-                </p>
-              )}
             </div>
           )}
           <p className="mb-8 text-lg text-paper-text">

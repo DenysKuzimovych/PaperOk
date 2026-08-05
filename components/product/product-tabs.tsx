@@ -115,7 +115,7 @@ export function ProductTabs({ product }: { product: Product }) {
             <div>
               <h4 className="font-semibold text-paper-heading">Плащане</h4>
               <p className="mt-1">
-                Онлайн с карта, наложен платеж или банков превод.
+                Онлайн с карта или наложен платеж.
               </p>
             </div>
             <div>

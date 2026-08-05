@@ -3,7 +3,7 @@
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { GridTileImage } from "components/grid/tile";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function Gallery({
   images,
@@ -13,15 +13,16 @@ export function Gallery({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const goToImage = useCallback((index: number) => {
-    if (index === currentIndex || isTransitioning) return;
-    
-    setIsTransitioning(true);
-    setCurrentIndex(index);
-    
-    // Reset transition state after animation
-    setTimeout(() => setIsTransitioning(false), 200);
-  }, [currentIndex, isTransitioning]);
+  const goToImage = useCallback(
+    (index: number) => {
+      if (index === currentIndex || isTransitioning) return;
+
+      setIsTransitioning(true);
+      setCurrentIndex(index);
+      setTimeout(() => setIsTransitioning(false), 200);
+    },
+    [currentIndex, isTransitioning],
+  );
 
   const goToNext = useCallback(() => {
     const nextIndex = (currentIndex + 1) % images.length;
@@ -33,21 +34,19 @@ export function Gallery({
     goToImage(prevIndex);
   }, [currentIndex, images.length, goToImage]);
 
-  // Preload adjacent images for instant switching
   useEffect(() => {
     if (images.length > 1 && typeof window !== "undefined") {
       const nextIndex = (currentIndex + 1) % images.length;
       const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
-      
-      // Preload next and previous images using DOM Image API
+
       const nextImage = images[nextIndex];
       const prevImage = images[prevIndex];
-      
+
       if (nextImage) {
         const preloadNext = new window.Image();
         preloadNext.src = nextImage.src;
       }
-      
+
       if (prevImage) {
         const preloadPrev = new window.Image();
         preloadPrev.src = prevImage.src;
@@ -55,7 +54,6 @@ export function Gallery({
     }
   }, [currentIndex, images]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -74,39 +72,33 @@ export function Gallery({
 
   if (!images.length) return null;
 
+  const current = images[currentIndex]!;
+
   return (
     <div>
-      <div className="relative aspect-square h-full max-h-[550px] w-full overflow-hidden rounded-lg bg-paper-bg">
-        {/* Main image with fade transition */}
-        <div className="relative h-full w-full">
-          {images.map((image, index) => (
-            <div
-              key={image.src}
-              className={`absolute inset-0 transition-opacity duration-200 will-change-opacity ${
-                index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-              }`}
-            >
-              <Image
-                className="h-full w-full object-contain"
-                fill
-                sizes="(min-width: 1024px) 66vw, 100vw"
-                alt={image.altText}
-                src={image.src}
-                priority={index === 0}
-                loading={index === 0 ? "eager" : "lazy"}
-                unoptimized={
-                  image.src.startsWith("/placeholder") ||
-                  image.src.endsWith(".svg")
-                }
-              />
-            </div>
-          ))}
+      <div className="relative w-full overflow-hidden rounded-lg bg-paper-bg">
+        <div className="relative flex min-h-[220px] w-full items-center justify-center sm:min-h-[280px]">
+          <Image
+            key={current.src}
+            className="h-auto max-h-[min(80vh,720px)] w-full object-contain transition-opacity duration-200"
+            width={1200}
+            height={1200}
+            sizes="(min-width: 1024px) 66vw, 100vw"
+            alt={current.altText}
+            src={current.src}
+            priority
+            unoptimized={
+              current.src.startsWith("/placeholder") ||
+              current.src.endsWith(".svg")
+            }
+          />
         </div>
 
         {images.length > 1 ? (
-          <div className="absolute bottom-[15%] flex w-full justify-center z-20">
+          <div className="absolute bottom-4 left-0 right-0 z-20 flex w-full justify-center">
             <div className="mx-auto flex h-11 items-center rounded-full border border-white bg-paper-section/80 text-paper-muted backdrop-blur-sm">
               <button
+                type="button"
                 onClick={goToPrevious}
                 aria-label="Предишна снимка на продукт"
                 className={buttonClassName}
@@ -114,8 +106,9 @@ export function Gallery({
               >
                 <ArrowLeftIcon className="h-5" />
               </button>
-              <div className="mx-1 h-6 w-px bg-paper-muted"></div>
+              <div className="mx-1 h-6 w-px bg-paper-muted" />
               <button
+                type="button"
                 onClick={goToNext}
                 aria-label="Следваща снимка на продукт"
                 className={buttonClassName}
@@ -129,13 +122,14 @@ export function Gallery({
       </div>
 
       {images.length > 1 ? (
-        <ul className="my-12 flex items-center flex-wrap justify-center gap-2 overflow-auto py-1 lg:mb-0">
+        <ul className="my-12 flex flex-wrap items-center justify-center gap-2 overflow-auto py-1 lg:mb-0">
           {images.map((image, index) => {
             const isActive = index === currentIndex;
 
             return (
               <li key={image.src} className="h-20 w-20">
                 <button
+                  type="button"
                   onClick={() => goToImage(index)}
                   aria-label="Избери снимка на продукт"
                   className={`h-full w-full transition-opacity ${

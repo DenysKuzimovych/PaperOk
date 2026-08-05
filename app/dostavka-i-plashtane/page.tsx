@@ -115,11 +115,6 @@ export default function ShippingPaymentPage() {
                   <strong className="text-paper-heading">Наложен платеж</strong> —
                   плащате при получаване на пратката.
                 </li>
-                <li>
-                  <strong className="text-paper-heading">Банков превод</strong> —
-                  по банков път; ще получите данни за плащане след потвърждение
-                  на поръчката.
-                </li>
               </ul>
             </section>
             </Reveal>

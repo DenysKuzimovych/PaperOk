@@ -73,7 +73,7 @@ export default function Footer() {
 
   return (
 
-    <footer className="animate-fade-in relative overflow-hidden border-t border-paper-border bg-paper-section text-sm text-paper-text">
+    <footer className="animate-fade-in relative z-0 overflow-hidden border-t border-paper-border bg-paper-section text-sm text-paper-text">
       <PaperTexture
         src={PAPER_BACKGROUNDS.plain}
         overlay={PAPER_OVERLAYS.section}

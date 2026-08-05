@@ -1,13 +1,23 @@
 "use client";
 
 import { Dialog, Transition } from "@headlessui/react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  Bars3Icon,
+  ChevronDownIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { SiteLogo } from "components/site-logo";
 import { PaperTexture } from "components/ui/paper-texture";
+import {
+  buildCategoryTree,
+  type CategoryNode,
+  type FlatCategory,
+} from "lib/category-tree";
 import {
   FACEBOOK_URL,
   FIXED_MENU,
   INSTAGRAM_URL,
+  MAIN_MENU_SECTIONS,
   TIKTOK_URL,
   type MenuItem,
 } from "lib/constants";
@@ -39,10 +49,144 @@ function SocialIcon({
   );
 }
 
+function collectionFromPath(path: string): string | null {
+  if (!path.includes("collection=")) return null;
+  return new URLSearchParams(path.split("?")[1] || "").get("collection");
+}
+
+function containsHandle(node: CategoryNode, handle: string): boolean {
+  if (node.handle === handle) return true;
+  return node.children.some((child) => containsHandle(child, handle));
+}
+
+function MobileSubTree({
+  nodes,
+  onNavigate,
+  depth = 0,
+}: {
+  nodes: CategoryNode[];
+  onNavigate: () => void;
+  depth?: number;
+}) {
+  return (
+    <ul className={depth === 0 ? "mt-1 space-y-0.5 border-l border-paper-border/60 pl-3" : "mt-0.5 space-y-0.5 pl-3"}>
+      {nodes.map((node) => (
+        <li key={node.id}>
+          <Link
+            href={`/products?collection=${node.handle}`}
+            onClick={onNavigate}
+            className="block rounded-lg px-2 py-2 text-[15px] text-paper-text transition-colors hover:bg-paper-white/40 hover:text-paper-green"
+          >
+            {node.title}
+          </Link>
+          {node.children.length > 0 && (
+            <MobileSubTree
+              nodes={node.children}
+              onNavigate={onNavigate}
+              depth={depth + 1}
+            />
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MobileMenuItem({
+  item,
+  categories,
+  onNavigate,
+}: {
+  item: MenuItem;
+  categories: FlatCategory[];
+  onNavigate: () => void;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [expanded, setExpanded] = useState(false);
+
+  const handle = collectionFromPath(item.path);
+  const tree = buildCategoryTree(categories);
+  const root = handle ? tree.find((n) => n.handle === handle) : null;
+  const children = root?.children ?? [];
+
+  const current = searchParams.get("collection");
+  const isActive =
+    !!handle &&
+    pathname === "/products" &&
+    !!current &&
+    (current === handle || (!!root && containsHandle(root, current)));
+
+  const seeAllLabel = `Виж всички ${item.title.toLowerCase()}`;
+
+  return (
+    <li>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3.5 text-left text-[17px] font-medium tracking-wide transition-colors ${
+          isActive || expanded
+            ? "bg-paper-white/55 text-paper-green"
+            : "text-paper-heading hover:bg-paper-white/40 hover:text-paper-green"
+        }`}
+      >
+        <span>{item.title}</span>
+        <ChevronDownIcon
+          className={`h-5 w-5 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {expanded && (
+        <ul className="mt-1 space-y-0.5 border-l border-paper-border/60 pl-3">
+          <li>
+            <Link
+              href={item.path}
+              prefetch={true}
+              onClick={onNavigate}
+              className={`block rounded-lg px-2 py-2.5 text-[15px] font-medium transition-colors ${
+                current === handle
+                  ? "bg-paper-white/50 text-paper-green"
+                  : "text-paper-heading hover:bg-paper-white/40 hover:text-paper-green"
+              }`}
+            >
+              {seeAllLabel}
+            </Link>
+          </li>
+          {children.map((child) => (
+            <li key={child.id}>
+              <Link
+                href={`/products?collection=${child.handle}`}
+                onClick={onNavigate}
+                className={`block rounded-lg px-2 py-2 text-[15px] transition-colors ${
+                  current === child.handle
+                    ? "bg-paper-white/50 text-paper-green"
+                    : "text-paper-text hover:bg-paper-white/40 hover:text-paper-green"
+                }`}
+              >
+                {child.title}
+              </Link>
+              {child.children.length > 0 && (
+                <MobileSubTree
+                  nodes={child.children}
+                  onNavigate={onNavigate}
+                  depth={1}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export default function MobileMenu({
   menu = [...FIXED_MENU],
+  categories = [],
 }: {
   menu?: MenuItem[];
+  categories?: FlatCategory[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,6 +206,8 @@ export default function MobileMenu({
   useEffect(() => {
     setIsOpen(false);
   }, [pathname, searchParams]);
+
+  const sectionHandles = new Set(MAIN_MENU_SECTIONS.map((s) => s.handle));
 
   return (
     <>
@@ -130,20 +276,25 @@ export default function MobileMenu({
 
                 <ul className="flex w-full flex-col gap-0.5">
                   {menu.map((item) => {
-                    const isCollection = item.path.includes("collection=");
-                    const wanted = isCollection
-                      ? new URLSearchParams(item.path.split("?")[1] || "").get(
-                          "collection",
-                        )
-                      : null;
+                    const handle = collectionFromPath(item.path);
+                    const isMainSection = handle && sectionHandles.has(handle as any);
+
+                    if (isMainSection) {
+                      return (
+                        <MobileMenuItem
+                          key={item.path}
+                          item={item}
+                          categories={categories}
+                          onNavigate={closeMobileMenu}
+                        />
+                      );
+                    }
+
                     const isActive =
                       item.path === "/"
                         ? pathname === "/"
-                        : isCollection
-                          ? pathname === "/products" &&
-                            searchParams.get("collection") === wanted
-                          : pathname === item.path ||
-                            pathname.startsWith(`${item.path}/`);
+                        : pathname === item.path ||
+                          pathname.startsWith(`${item.path}/`);
 
                     return (
                       <li key={item.path}>

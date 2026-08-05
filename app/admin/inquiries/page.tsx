@@ -29,10 +29,10 @@ export default async function AdminInquiriesPage() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Контактни запитвания
+          Запитвания
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Съобщения от формата на страницата Контакти
+          Съобщения от Контакти и бизнес запитвания (За бизнеса)
           {newCount > 0 ? ` · ${newCount} нови` : ""}
         </p>
       </div>
@@ -44,6 +44,9 @@ export default async function AdminInquiriesPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Дата
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Източник
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Име
@@ -66,14 +69,18 @@ export default async function AdminInquiriesPage() {
               {inquiries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
                     Няма запитвания
                   </td>
                 </tr>
               ) : (
-                inquiries.map((inquiry) => (
+                inquiries.map((inquiry) => {
+                  const isBusiness = (inquiry.subject || "")
+                    .toLowerCase()
+                    .startsWith("бизнес");
+                  return (
                   <tr
                     key={inquiry.id}
                     className={
@@ -85,6 +92,17 @@ export default async function AdminInquiriesPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(inquiry.created_at).toLocaleString("bg-BG")}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          isBusiness
+                            ? "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                        }`}
+                      >
+                        {isBusiness ? "Бизнес" : "Контакти"}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       {inquiry.name}
                     </td>
@@ -95,6 +113,11 @@ export default async function AdminInquiriesPage() {
                       ) : null}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
+                      {inquiry.subject ? (
+                        <span className="mr-1 text-xs text-gray-500">
+                          [{inquiry.subject}]
+                        </span>
+                      ) : null}
                       {inquiry.message}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -113,7 +136,8 @@ export default async function AdminInquiriesPage() {
                       </Link>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

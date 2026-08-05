@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { FunnelIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  FunnelIcon,
+  ChevronDownIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import type { Collection } from "lib/types";
+import { AnchoredPortal } from "components/ui/anchored-portal";
 
 interface FilterDropdownProps {
   collections: Collection[];
@@ -26,11 +31,18 @@ export function FilterDropdown({
   currentFilters,
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [minPrice, setMinPrice] = useState(currentFilters.minPrice?.toString() || "");
-  const [maxPrice, setMaxPrice] = useState(currentFilters.maxPrice?.toString() || "");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(currentFilters.categories);
+  const [minPrice, setMinPrice] = useState(
+    currentFilters.minPrice?.toString() || "",
+  );
+  const [maxPrice, setMaxPrice] = useState(
+    currentFilters.maxPrice?.toString() || "",
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    currentFilters.categories,
+  );
   const [onSaleOnly, setOnSaleOnly] = useState(currentFilters.onSaleOnly);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMinPrice(currentFilters.minPrice?.toString() || "");
@@ -40,18 +52,24 @@ export function FilterDropdown({
   }, [currentFilters]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
 
@@ -65,7 +83,7 @@ export function FilterDropdown({
     setSelectedCategories((prev) =>
       prev.includes(categoryHandle)
         ? prev.filter((c) => c !== categoryHandle)
-        : [...prev, categoryHandle]
+        : [...prev, categoryHandle],
     );
   };
 
@@ -92,148 +110,168 @@ export function FilterDropdown({
     });
   };
 
+  const activeCount = [
+    currentFilters.minPrice !== undefined ||
+      currentFilters.maxPrice !== undefined,
+    currentFilters.categories.length > 0,
+    currentFilters.onSaleOnly,
+  ].filter(Boolean).length;
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className={`paper-dropdown-trigger min-w-[140px] ${
+        aria-label={
+          hasActiveFilters
+            ? `Филтри (${activeCount} активни)`
+            : "Филтри"
+        }
+        title="Филтри"
+        className={`paper-dropdown-trigger paper-dropdown-trigger-compact relative ${
           hasActiveFilters
             ? "border-paper-green bg-paper-green text-white hover:bg-paper-green-hover hover:border-paper-green"
             : ""
         } ${isOpen && !hasActiveFilters ? "is-open" : ""}`}
       >
         <div className="flex items-center gap-2">
-          <FunnelIcon className="h-5 w-5" />
-          <span>Филтри</span>
+          <span className="relative inline-flex">
+            <FunnelIcon
+              className={`h-5 w-5 ${hasActiveFilters ? "text-white" : "text-paper-muted"}`}
+            />
+            {hasActiveFilters && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-paper-green sm:hidden">
+                {activeCount}
+              </span>
+            )}
+          </span>
+          <span className="hidden sm:inline">Филтри</span>
           {hasActiveFilters && (
-            <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-              {[
-                currentFilters.minPrice !== undefined || currentFilters.maxPrice !== undefined,
-                currentFilters.categories.length > 0,
-                currentFilters.onSaleOnly,
-              ].filter(Boolean).length}
+            <span className="ml-1 hidden rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold sm:inline">
+              {activeCount}
             </span>
           )}
         </div>
         <ChevronDownIcon
-          className={`h-4 w-4 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`hidden h-4 w-4 transition-transform duration-200 sm:block ${
+            hasActiveFilters ? "text-white" : "text-paper-muted"
+          } ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
-      {isOpen && (
-        <div className="paper-dropdown-panel absolute top-full right-0 left-0 z-50 mt-2 max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto sm:right-0 sm:left-auto sm:w-80">
-          <div className="p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-heading text-lg font-semibold text-paper-heading">Филтри</h3>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-full p-1 text-paper-muted transition-colors hover:bg-paper-accent-bg hover:text-paper-green"
-                aria-label="Затвори"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
+      <AnchoredPortal
+        open={isOpen}
+        anchorRef={triggerRef}
+        panelRef={panelRef}
+        align="right"
+        minWidth={288}
+        maxWidth={340}
+        className="paper-dropdown-panel"
+      >
+        <div className="p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-heading text-lg font-semibold text-paper-heading">
+              Филтри
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-full p-1 text-paper-muted transition-colors hover:bg-paper-accent-bg hover:text-paper-green"
+              aria-label="Затвори"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
 
-            {/* Price Range */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-paper-heading mb-3">
-                Ценови диапазон (EUR)
-              </h4>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-paper-heading mb-1">
-                    От
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-paper-heading mb-1">
-                    До
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="1000.00"
-                    className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Categories */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-paper-heading mb-3">
-                Категории
-              </h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {collections.map((collection) => (
-                  <label
-                    key={collection.id}
-                    className="flex items-center gap-2 p-2 rounded-md hover:bg-paper-bg cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(collection.handle)}
-                      onChange={() => handleCategoryToggle(collection.handle)}
-                      className="h-4 w-4 text-paper-text rounded border-paper-border focus:ring-paper-green"
-                    />
-                    <span className="text-sm text-paper-heading">
-                      {collection.title}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* On Sale Only */}
-            <div className="mb-4">
-              <label className="flex items-center gap-2 p-2 rounded-md hover:bg-paper-bg cursor-pointer">
+          <div className="mb-4">
+            <h4 className="mb-3 text-sm font-semibold text-paper-heading">
+              Ценови диапазон (EUR)
+            </h4>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-paper-heading">
+                  От
+                </label>
                 <input
-                  type="checkbox"
-                  checked={onSaleOnly}
-                  onChange={(e) => setOnSaleOnly(e.target.checked)}
-                  className="h-4 w-4 text-paper-text rounded border-paper-border focus:ring-paper-green"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
                 />
-                <span className="text-sm font-medium text-paper-heading">
-                  Само продукти на намаление
-                </span>
-              </label>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 pt-3 border-t border-paper-border">
-              <button
-                onClick={handleApply}
-                className="btn-primary-sm flex-1"
-              >
-                Приложи
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 text-sm font-medium text-paper-heading bg-paper-section rounded-md hover:bg-paper-section transition-colors"
-              >
-                Изчисти
-              </button>
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-paper-heading">
+                  До
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  placeholder="1000.00"
+                  className="w-full rounded-md border border-paper-border bg-paper-white px-3 py-2 text-sm text-paper-heading shadow-sm focus:border-paper-border focus:outline-none focus:ring-1 focus:ring-paper-green"
+                />
+              </div>
             </div>
           </div>
+
+          <div className="mb-4">
+            <h4 className="mb-3 text-sm font-semibold text-paper-heading">
+              Категории
+            </h4>
+            <div className="max-h-40 space-y-1 overflow-y-auto">
+              {collections.map((collection) => (
+                <label
+                  key={collection.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-paper-bg"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(collection.handle)}
+                    onChange={() => handleCategoryToggle(collection.handle)}
+                    className="h-4 w-4 rounded border-paper-border text-paper-text focus:ring-paper-green"
+                  />
+                  <span className="text-sm text-paper-heading">
+                    {collection.title}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-paper-bg">
+              <input
+                type="checkbox"
+                checked={onSaleOnly}
+                onChange={(e) => setOnSaleOnly(e.target.checked)}
+                className="h-4 w-4 rounded border-paper-border text-paper-text focus:ring-paper-green"
+              />
+              <span className="text-sm font-medium text-paper-heading">
+                Само продукти на намаление
+              </span>
+            </label>
+          </div>
+
+          <div className="flex gap-2 border-t border-paper-border pt-3">
+            <button onClick={handleApply} className="btn-primary-sm flex-1">
+              Приложи
+            </button>
+            <button
+              onClick={handleReset}
+              className="rounded-md bg-paper-section px-4 py-2 text-sm font-medium text-paper-heading transition-colors hover:bg-paper-section"
+            >
+              Изчисти
+            </button>
+          </div>
         </div>
-      )}
+      </AnchoredPortal>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       message,
-      subject,
+      subject: subject?.trim() || "Контакти",
     });
 
     const result = await sendContactFormEmail({

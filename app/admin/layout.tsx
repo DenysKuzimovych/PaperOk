@@ -9,12 +9,14 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  // Check if we're on the login page - if so, don't check auth
   const headersList = await headers();
-  const pathname = headersList.get("x-invoke-path") || "";
-  
-  // If we're on /admin/login, allow access without auth check
-  if (pathname === "/admin/login") {
+  const pathname =
+    headersList.get("x-pathname") ||
+    headersList.get("x-invoke-path") ||
+    "";
+
+  // Login page: no auth shell (and no nested <main>)
+  if (pathname === "/admin/login" || pathname.startsWith("/admin/login")) {
     return <>{children}</>;
   }
 
@@ -28,15 +30,14 @@ export default async function AdminLayout({
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <AdminNavbar />
-        <main className="py-8 px-4 sm:px-6 lg:px-8">{children}</main>
+        {/* Use <div>, not <main> — root layout already wraps children in <main> */}
+        <div className="px-4 py-8 sm:px-6 lg:px-8">{children}</div>
       </div>
     );
   } catch (error: any) {
-    // NEXT_REDIRECT is expected behavior from redirect() - re-throw it
     if (error?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    // If there's an error checking admin status, redirect to login
     console.error("Error checking admin status:", error);
     redirect("/admin/login");
   }

@@ -2,10 +2,20 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BarsArrowUpIcon, ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
+import {
+  BarsArrowUpIcon,
+  ChevronDownIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
 import clsx from "clsx";
+import { AnchoredPortal } from "components/ui/anchored-portal";
 
-type SortOption = "price-asc" | "price-desc" | "discount-desc" | "name-asc" | "newest";
+type SortOption =
+  | "price-asc"
+  | "price-desc"
+  | "discount-desc"
+  | "name-asc"
+  | "newest";
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "price-asc", label: "Цена: Възходяща" },
@@ -20,23 +30,31 @@ export function SortFilter() {
   const searchParams = useSearchParams();
   const currentSort = (searchParams.get("sort") as SortOption) || "newest";
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  const currentLabel = sortOptions.find((opt) => opt.value === currentSort)?.label || "Най-нови";
+  const currentLabel =
+    sortOptions.find((opt) => opt.value === currentSort)?.label || "Най-нови";
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
 
@@ -48,44 +66,56 @@ export function SortFilter() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className={clsx("paper-dropdown-trigger w-full min-w-[200px] sm:w-auto", isOpen && "is-open")}
+        aria-label={`Сортиране: ${currentLabel}`}
+        title={currentLabel}
+        className={clsx(
+          "paper-dropdown-trigger paper-dropdown-trigger-compact",
+          isOpen && "is-open",
+        )}
       >
         <div className="flex items-center gap-2">
-          <BarsArrowUpIcon className="h-5 w-5 text-paper-green/80" />
-          <span>{currentLabel}</span>
+          <BarsArrowUpIcon className="h-5 w-5 text-paper-muted" />
+          <span className="hidden sm:inline">{currentLabel}</span>
         </div>
         <ChevronDownIcon
-          className={`h-4 w-4 text-paper-green/70 transition-transform duration-200 ${
+          className={`hidden h-4 w-4 text-paper-muted transition-transform duration-200 sm:block ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
 
-      {isOpen && (
-        <div className="paper-dropdown-panel absolute top-full left-0 z-50 mt-2 w-full min-w-full overflow-hidden sm:w-auto">
-          {sortOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSortChange(option.value)}
-              className={clsx(
-                "paper-dropdown-item",
-                currentSort === option.value && "is-active",
-              )}
-            >
-              <span>{option.label}</span>
-              {currentSort === option.value && (
-                <CheckIcon className="h-4 w-4 text-paper-green" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <AnchoredPortal
+        open={isOpen}
+        anchorRef={triggerRef}
+        panelRef={panelRef}
+        align="right"
+        minWidth={220}
+        maxWidth={280}
+        className="paper-dropdown-panel overflow-hidden"
+      >
+        {sortOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => handleSortChange(option.value)}
+            className={clsx(
+              "paper-dropdown-item",
+              currentSort === option.value && "is-active",
+            )}
+          >
+            <span>{option.label}</span>
+            {currentSort === option.value && (
+              <CheckIcon className="h-4 w-4 text-paper-green" />
+            )}
+          </button>
+        ))}
+      </AnchoredPortal>
     </div>
   );
 }

@@ -160,6 +160,25 @@ button {
     box-shadow 0.2s ease;
 }
 
+/* Icon-only triggers on small screens (sort / filters toolbar) */
+.paper-dropdown-trigger.paper-dropdown-trigger-compact {
+  min-width: 2.75rem;
+  width: 2.75rem;
+  justify-content: center;
+  gap: 0;
+  padding: 0.65rem;
+}
+
+@media (min-width: 640px) {
+  .paper-dropdown-trigger.paper-dropdown-trigger-compact {
+    min-width: 11rem;
+    width: auto;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+  }
+}
+
 .paper-dropdown-trigger:hover {
   border-color: color-mix(in srgb, var(--paper-green) 40%, var(--paper-border));
   background-color: color-mix(in srgb, var(--paper-section) 60%, var(--paper-bg));
@@ -444,4 +463,186 @@ button {
 /* Serif heading utility */
 .font-heading {
   font-family: var(--font-heading), Georgia, serif;
+}
+
+/* ── Category tree (products sidebar) ──
+   Hierarchy lines inspired by clear retail/file-tree navs,
+   tuned to PaperOK warm paper tones. */
+.paper-cat-tree {
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 640px) {
+  .paper-cat-tree {
+    font-size: 0.875rem;
+  }
+}
+
+.paper-cat-root-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.paper-cat-node {
+  position: relative;
+  list-style: none;
+}
+
+.paper-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.paper-cat-toggle {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  color: var(--paper-muted);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.paper-cat-toggle:hover {
+  background-color: color-mix(in srgb, var(--paper-section) 80%, transparent);
+  color: var(--paper-green);
+}
+
+.paper-cat-leaf-dot {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.paper-cat-leaf-dot::before {
+  content: "";
+  height: 0.28rem;
+  width: 0.28rem;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--paper-muted) 70%, transparent);
+}
+
+.paper-cat-link {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  line-height: 1.35;
+  color: var(--paper-heading);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.paper-cat-link-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+}
+
+.paper-cat-link:hover {
+  background-color: color-mix(in srgb, var(--paper-section) 75%, transparent);
+  color: var(--paper-green);
+}
+
+.paper-cat-link-root {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.paper-cat-link.is-ancestor {
+  color: var(--paper-green);
+  font-weight: 500;
+}
+
+.paper-cat-link.is-active {
+  background-color: var(--paper-green);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--paper-green) 28%, transparent);
+}
+
+.paper-cat-link.is-active:hover {
+  background-color: var(--paper-green-hover);
+  color: white;
+}
+
+/* Nested branch with vertical trunk + horizontal elbows */
+.paper-cat-branch {
+  position: relative;
+  margin: 0.1rem 0 0.25rem 0.7rem;
+  padding-left: 0.85rem;
+}
+
+.paper-cat-branch::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  /* Stop just under the last child's elbow */
+  bottom: 0.55rem;
+  left: 0;
+  width: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--paper-green) 40%, var(--paper-border)) 0%,
+    color-mix(in srgb, var(--paper-border) 85%, transparent) 100%
+  );
+}
+
+.paper-cat-node-nested {
+  position: relative;
+}
+
+.paper-cat-node-nested::before {
+  content: "";
+  position: absolute;
+  top: 0.85rem;
+  left: -0.85rem;
+  width: 0.7rem;
+  height: 1.5px;
+  border-radius: 1px;
+  background-color: color-mix(in srgb, var(--paper-green) 32%, var(--paper-border));
+}
+
+@media (max-width: 639px) {
+  .paper-cat-tree {
+    font-size: 0.7rem;
+  }
+
+  .paper-cat-toggle,
+  .paper-cat-leaf-dot {
+    height: 1.25rem;
+    width: 1.15rem;
+  }
+
+  .paper-cat-link {
+    padding: 0.28rem 0.35rem;
+  }
+
+  .paper-cat-branch {
+    margin-left: 0.45rem;
+    padding-left: 0.65rem;
+  }
+
+  .paper-cat-node-nested::before {
+    left: -0.65rem;
+    width: 0.55rem;
+  }
 }

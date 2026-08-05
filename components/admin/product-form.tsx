@@ -9,10 +9,10 @@ import { ImageUploadButton } from "./image-upload-button";
 import { FieldHint } from "./field-hint";
 import { ProductVariantsEditor } from "./product-variants-editor";
 import {
-  buildCategoryTree,
-  flattenCategoryTree,
+  getProductCategoryGroups,
   type FlatCategory,
 } from "lib/category-tree";
+import { formatHandle, generateHandleFromTitle } from "lib/slug";
 
 interface ProductFormData {
   handle: string;
@@ -66,8 +66,7 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     variants: Array.isArray(product?.variants) ? product.variants : [],
   }));
 
-  const categoryTree = buildCategoryTree(collections);
-  const categoryOptions = flattenCategoryTree(categoryTree);
+  const categoryGroups = getProductCategoryGroups(collections);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,22 +274,7 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     });
   };
 
-  // Format handle/slug: lowercase, remove spaces, only allow letters, numbers, and hyphens
-  const formatHandle = (value: string): string => {
-    return value
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "") // Remove all spaces
-      .replace(/[^a-z0-9-]/g, "") // Remove all non-alphanumeric characters except hyphens
-      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-  };
-
-  // Generate handle from title
-  const generateHandleFromTitle = (title: string): string => {
-    return formatHandle(title);
-  };
-
+  // Format handle/slug: transliterate Cyrillic, lowercase, hyphens
   const handleHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatHandle(e.target.value);
     setFormData({ ...formData, handle: formatted });
@@ -406,20 +390,30 @@ export function ProductForm({ product, collections }: ProductFormProps) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Категория
+            Категория *
           </label>
           <select
+            required
             value={formData.category}
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
             <option value="">Избери категория</option>
-            {categoryOptions.map((cat) => (
-              <option key={cat.id} value={cat.handle}>
-                {"—".repeat(cat.depth)} {cat.title}
-              </option>
+            {categoryGroups.map((group) => (
+              <optgroup key={group.handle} label={group.title}>
+                {group.options.map((cat) => (
+                  <option key={cat.id} value={cat.handle}>
+                    {"—".repeat(cat.depth)} {cat.title}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
+          <FieldHint example="Бележници → под Подаръци">
+            Изберете категория под Картички, Подаръци или Семенна хартия.
+            Продуктът ще се вижда и при филтър по главната секция
+            (/products?collection=podaraci и т.н.).
+          </FieldHint>
         </div>
 
         <div>

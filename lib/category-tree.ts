@@ -1,3 +1,5 @@
+import { MAIN_MENU_SECTIONS } from "lib/constants";
+
 export type CategoryNode = {
   id: string;
   handle: string;
@@ -17,6 +19,10 @@ export type FlatCategory = {
   parent_id: string | null;
 };
 
+const MAIN_HANDLES = new Set(
+  MAIN_MENU_SECTIONS.map((s) => s.handle as string),
+);
+
 export function buildCategoryTree(categories: FlatCategory[]): CategoryNode[] {
   const map = new Map<string, CategoryNode>();
   const roots: CategoryNode[] = [];
@@ -35,7 +41,10 @@ export function buildCategoryTree(categories: FlatCategory[]): CategoryNode[] {
   }
 
   const sortNodes = (nodes: CategoryNode[]) => {
-    nodes.sort((a, b) => a.position - b.position || a.title.localeCompare(b.title, "bg"));
+    nodes.sort(
+      (a, b) =>
+        a.position - b.position || a.title.localeCompare(b.title, "bg"),
+    );
     nodes.forEach((n) => sortNodes(n.children));
   };
 
@@ -48,9 +57,19 @@ export function flattenCategoryTree(
   nodes: CategoryNode[],
   depth = 0,
 ): Array<{ id: string; handle: string; title: string; depth: number }> {
-  const result: Array<{ id: string; handle: string; title: string; depth: number }> = [];
+  const result: Array<{
+    id: string;
+    handle: string;
+    title: string;
+    depth: number;
+  }> = [];
   for (const node of nodes) {
-    result.push({ id: node.id, handle: node.handle, title: node.title, depth });
+    result.push({
+      id: node.id,
+      handle: node.handle,
+      title: node.title,
+      depth,
+    });
     result.push(...flattenCategoryTree(node.children, depth + 1));
   }
   return result;
@@ -106,6 +125,69 @@ export function getRootOfCategory(
     node = map.get(node.parent_id)!;
   }
   return node;
+}
+
+/** The 3 storefront roots only (Картички / Подаръци / Семенна хартия). */
+export function getMainMenuRoots(categories: FlatCategory[]): FlatCategory[] {
+  return MAIN_MENU_SECTIONS.map((section) =>
+    categories.find((c) => c.handle === section.handle && !c.parent_id),
+  ).filter((c): c is FlatCategory => Boolean(c));
+}
+
+/** True if categoryId sits under (or is) one of the 3 main menu roots. */
+export function isUnderMainMenu(
+  categories: FlatCategory[],
+  categoryId: string,
+): boolean {
+  const root = getRootOfCategory(categories, categoryId);
+  return Boolean(root && MAIN_HANDLES.has(root.handle));
+}
+
+/**
+ * Product category options grouped under the 3 main sections.
+ * Orphan categories (outside the 3 roots) are excluded.
+ */
+export function getProductCategoryGroups(categories: FlatCategory[]) {
+  const tree = buildCategoryTree(categories);
+  return MAIN_MENU_SECTIONS.map((section) => {
+    const root = findCategoryNode(tree, section.handle);
+    if (!root || root.parent_id) return null;
+
+    const options: Array<{
+      id: string;
+      handle: string;
+      title: string;
+      depth: number;
+    }> = [{ id: root.id, handle: root.handle, title: root.title, depth: 0 }];
+
+    const walk = (nodes: typeof root.children, depth: number) => {
+      for (const node of nodes) {
+        options.push({
+          id: node.id,
+          handle: node.handle,
+          title: node.title,
+          depth,
+        });
+        walk(node.children, depth + 1);
+      }
+    };
+    walk(root.children, 1);
+
+    return { handle: section.handle, title: section.title, options };
+  }).filter(
+    (
+      g,
+    ): g is {
+      handle: string;
+      title: string;
+      options: Array<{
+        id: string;
+        handle: string;
+        title: string;
+        depth: number;
+      }>;
+    } => Boolean(g),
+  );
 }
 
 /**

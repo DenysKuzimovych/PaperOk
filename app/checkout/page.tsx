@@ -12,7 +12,7 @@ import {
   type SpeedyShippingSelection,
 } from "components/checkout/speedy-shipping-form";
 
-type PaymentMethod = "cash_on_delivery" | "card" | "bank_transfer";
+type PaymentMethod = "cash_on_delivery" | "card";
 
 function generateIdempotencyKey() {
   return crypto.randomUUID();
@@ -289,30 +289,6 @@ export default function CheckoutPage() {
                         </div>
                         <div className="text-sm text-paper-muted">
                           Плащане при получаване на пратката
-                        </div>
-                      </div>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center rounded-lg border border-paper-border p-4 hover:bg-paper-bg">
-                      <input
-                        type="radio"
-                        name="payment_method"
-                        value="bank_transfer"
-                        checked={formData.payment_method === "bank_transfer"}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            payment_method: e.target.value as PaymentMethod,
-                          })
-                        }
-                        className="mr-3"
-                      />
-                      <div>
-                        <div className="font-medium text-paper-heading">
-                          Банков превод
-                        </div>
-                        <div className="text-sm text-paper-muted">
-                          Ще получите данни за плащане след потвърждение
                         </div>
                       </div>
                     </label>
