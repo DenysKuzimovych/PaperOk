@@ -149,9 +149,9 @@ export function isUnderMainMenu(
  */
 export function getProductCategoryGroups(categories: FlatCategory[]) {
   const tree = buildCategoryTree(categories);
-  return MAIN_MENU_SECTIONS.map((section) => {
+  return MAIN_MENU_SECTIONS.flatMap((section) => {
     const root = findCategoryNode(tree, section.handle);
-    if (!root || root.parent_id) return null;
+    if (!root || root.parent_id) return [];
 
     const options: Array<{
       id: string;
@@ -173,21 +173,8 @@ export function getProductCategoryGroups(categories: FlatCategory[]) {
     };
     walk(root.children, 1);
 
-    return { handle: section.handle, title: section.title, options };
-  }).filter(
-    (
-      g,
-    ): g is {
-      handle: string;
-      title: string;
-      options: Array<{
-        id: string;
-        handle: string;
-        title: string;
-        depth: number;
-      }>;
-    } => Boolean(g),
-  );
+    return [{ handle: section.handle, title: section.title, options }];
+  });
 }
 
 /**
