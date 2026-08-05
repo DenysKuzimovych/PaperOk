@@ -87,6 +87,9 @@ export function AdminNavbar() {
               <Link href="/admin/blog" className={getLinkClassName("/admin/blog")}>
                 Блог
               </Link>
+              <Link href="/admin/inquiries" className={getLinkClassName("/admin/inquiries")}>
+                Запитвания
+              </Link>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -161,6 +164,13 @@ export function AdminNavbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Блог
+            </Link>
+            <Link
+              href="/admin/inquiries"
+              className={getMobileLinkClassName("/admin/inquiries")}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Запитвания
             </Link>
             <Link
               href="/"

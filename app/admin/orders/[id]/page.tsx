@@ -132,11 +132,38 @@ export default async function OrderDetailPage({
             )}
             <div>
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Адрес:
+                Адрес / доставка:
               </span>
               <p className="text-gray-900 dark:text-white whitespace-pre-line">
                 {order.customer_address}
               </p>
+              {order.shipping_method ? (
+                <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                  <p>
+                    Speedy:{" "}
+                    {order.shipping_method === "office"
+                      ? "до офис"
+                      : order.shipping_method === "apt"
+                        ? "до автомат"
+                        : "до адрес"}
+                  </p>
+                  {order.shipping_site_name ? (
+                    <p>Населено място: {order.shipping_site_name}</p>
+                  ) : null}
+                  {order.shipping_office_name ? (
+                    <p>Офис/автомат: {order.shipping_office_name}</p>
+                  ) : null}
+                  {order.shipping_details?.addressLine ? (
+                    <p>Адрес: {String(order.shipping_details.addressLine)}</p>
+                  ) : null}
+                  {order.shipping_deadline ? (
+                    <p>
+                      Ориентировъчен срок:{" "}
+                      {new Date(order.shipping_deadline).toLocaleString("bg-BG")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -145,7 +172,9 @@ export default async function OrderDetailPage({
               <p className="text-gray-900 dark:text-white">
                 {order.payment_method === "cash_on_delivery"
                   ? "Наложен платеж"
-                  : "Плащане с карта"}
+                  : order.payment_method === "bank_transfer"
+                    ? "Банков превод"
+                    : "Плащане с карта"}
               </p>
             </div>
           </div>
@@ -196,6 +225,20 @@ export default async function OrderDetailPage({
                   (sum: number, p: any) => sum + (p.quantity || 0),
                   0
                 )}
+              </span>
+            </div>
+            {order.products_subtotal != null ? (
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Продукти:</span>
+                <span className="text-gray-900 dark:text-white">
+                  €{Number(order.products_subtotal).toFixed(2)}
+                </span>
+              </div>
+            ) : null}
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Доставка:</span>
+              <span className="text-gray-900 dark:text-white">
+                €{Number(order.shipping_price || 0).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-gray-700">

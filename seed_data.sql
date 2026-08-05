@@ -1,13 +1,13 @@
 -- =============================================================================
 -- PaperOK — Dummy / Seed Data
 -- =============================================================================
--- Пусни СЛЕД final_supabase.sql
+-- Пусни СЛЕД final_supabase.sql (не след next_migration.sql върху prod данни).
 --
 -- Снимките са празни — качи ги ръчно от админ панела (/admin/products, /admin/blog).
 -- =============================================================================
 
 -- Изчистване на съществуващи данни (без да пипа схемата)
-TRUNCATE TABLE product_images, orders, blog_posts, products, collections CASCADE;
+TRUNCATE TABLE contact_inquiries, product_images, orders, blog_posts, products, collections CASCADE;
 
 -- =============================================================================
 -- КАТЕГОРИИ (дърво)

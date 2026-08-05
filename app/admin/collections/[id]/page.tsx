@@ -57,6 +57,9 @@ export default async function EditCollectionPage({
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           {collection.title}
+          {collection.parent_id
+            ? " — променете главното меню, ако искате да я преместите в друга секция"
+            : " — главно меню в навигацията"}
         </p>
       </div>
 

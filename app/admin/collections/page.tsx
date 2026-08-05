@@ -27,7 +27,8 @@ export default async function AdminCollectionsPage() {
             Категории
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Управление на категориите (дървовидна структура)
+            Всяка категория принадлежи към главно меню: Картички, Подаръци или
+            Семенна хартия
           </p>
         </div>
         <Link
@@ -48,6 +49,9 @@ export default async function AdminCollectionsPage() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Slug
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Главно меню
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Позиция

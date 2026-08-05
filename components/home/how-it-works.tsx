@@ -1,3 +1,6 @@
+import { PaperTexture } from "components/ui/paper-texture";
+import { Reveal } from "components/ui/reveal";
+import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import { Section } from "./section";
 
 const steps = [
@@ -27,35 +30,48 @@ const steps = [
   },
 ];
 
+/** Same seed-paper texture as card 04 for all steps */
+const STEP_CARD_BG = PAPER_BACKGROUNDS.petalsSoft;
+
 export function HowItWorks() {
   return (
     <Section
       title="Как работи"
       subtitle="Четири кратки стъпки — от подаръка до живите растения"
+      texture="plain"
     >
       <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => (
-          <li
-            key={step.number}
-            className="relative rounded-2xl border border-paper-border/70 bg-paper-white p-6"
-            style={{ boxShadow: "var(--paper-shadow)" }}
-          >
-            {index < steps.length - 1 && (
-              <span
-                className="absolute -right-3 top-10 z-10 hidden h-px w-6 bg-paper-border lg:block"
-                aria-hidden
+          <Reveal key={step.number} as="li" delay={index * 90} variant="up">
+            <div
+              className="hover-lift relative overflow-hidden rounded-2xl border border-paper-border/70 p-6"
+              style={{ boxShadow: "var(--paper-shadow)" }}
+            >
+              <PaperTexture
+                src={STEP_CARD_BG}
+                overlay={PAPER_OVERLAYS.cardSoft}
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                quality={88}
               />
-            )}
-            <span className="font-heading text-sm font-semibold tracking-[0.18em] text-paper-green">
-              {step.number}
-            </span>
-            <h3 className="mt-4 font-heading text-xl font-semibold text-paper-heading">
-              {step.title}
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-paper-muted">
-              {step.description}
-            </p>
-          </li>
+              {index < steps.length - 1 && (
+                <span
+                  className="absolute -right-3 top-10 z-10 hidden h-px w-6 bg-paper-border lg:block"
+                  aria-hidden
+                />
+              )}
+              <div className="relative z-10">
+                <span className="font-heading text-sm font-semibold tracking-[0.18em] text-paper-green">
+                  {step.number}
+                </span>
+                <h3 className="mt-4 font-heading text-xl font-semibold text-paper-heading">
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-paper-muted">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          </Reveal>
         ))}
       </ol>
     </Section>

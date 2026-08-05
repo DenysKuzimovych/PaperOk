@@ -1,15 +1,20 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { SITE_NAME } from "lib/constants";
-import { getBaseUrl } from "lib/utils";
+import {
+  CONTACT_EMAIL,
+  CONTACT_LOCATION,
+  SITE_NAME,
+  SITE_URL,
+} from "lib/constants";
 
 const siteName = SITE_NAME;
-const siteUrl = getBaseUrl();
+const siteUrl = SITE_URL;
+const siteHost = "paperok.bg";
 
 export const metadata: Metadata = {
   title: `Политика за поверителност - ${siteName}`,
-  description: `Политика за поверителност и защита на личните данни на ${siteName}`,
+  description: `Политика за поверителност и защита на личните данни на ${siteName} (${siteHost})`,
 };
 
 export default function PrivacyPolicyPage() {
@@ -18,11 +23,11 @@ export default function PrivacyPolicyPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link
-            href="/checkout"
+            href="/"
             className="inline-flex items-center text-paper-green hover:text-paper-green-hover transition-colors"
           >
             <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Назад към потвърждаване на покупката
+            Назад към началната страница
           </Link>
         </div>
         <h1 className="text-4xl font-bold text-paper-heading mb-8">
@@ -32,21 +37,27 @@ export default function PrivacyPolicyPage() {
         <div className="bg-paper-white rounded-lg shadow p-8 space-y-8">
           <div>
             <p className="text-sm text-paper-text mb-4">
-              <strong>Последна актуализация:</strong> {new Date().toLocaleDateString("bg-BG", {
+              <strong>Последна актуализация:</strong>{" "}
+              {new Date().toLocaleDateString("bg-BG", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
               })}
             </p>
             <p className="text-paper-heading mb-6">
-              Настоящата Политика за поверителност описва как {siteName} (наричан по-долу "ние", "нас", "наш") 
-              събира, използва, съхранява и защитава личните данни на потребителите на нашия уебсайт{" "}
-              <a href={siteUrl} className="text-paper-green underline">{siteUrl}</a> 
-              (наричан по-долу "Сайтът").
+              Настоящата Политика за поверителност описва как {siteName}{" "}
+              (наричан по-долу &quot;ние&quot;, &quot;нас&quot;, &quot;наш&quot;)
+              събира, използва, съхранява и защитава личните данни на
+              потребителите на нашия уебсайт{" "}
+              <a href={siteUrl} className="text-paper-green underline">
+                {siteHost}
+              </a>{" "}
+              ({siteUrl}) (наричан по-долу &quot;Сайтът&quot;).
             </p>
             <p className="text-paper-heading mb-6">
-              С използването на нашия Сайт, вие се съгласявате с условията на настоящата Политика за поверителност. 
-              Ако не се съгласявате с някоя част от тази политика, моля, не използвайте нашия Сайт.
+              С използването на нашия Сайт, вие се съгласявате с условията на
+              настоящата Политика за поверителност. Ако не се съгласявате с някоя
+              част от тази политика, моля, не използвайте нашия Сайт.
             </p>
           </div>
 
@@ -342,10 +353,28 @@ export default function PrivacyPolicyPage() {
                 <strong>{siteName}</strong>
               </p>
               <p className="text-paper-heading">
-                Уебсайт: <a href={siteUrl} className="text-paper-green underline">{siteUrl}</a>
+                Уебсайт:{" "}
+                <a href={siteUrl} className="text-paper-green underline">
+                  {siteHost}
+                </a>{" "}
+                ({siteUrl})
               </p>
               <p className="text-paper-heading">
-                За контакт използвайте формата за контакт на нашия Сайт.
+                Имейл:{" "}
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="text-paper-green underline"
+                >
+                  {CONTACT_EMAIL}
+                </a>
+              </p>
+              <p className="text-paper-heading">Адрес: {CONTACT_LOCATION}</p>
+              <p className="text-paper-heading">
+                За контакт можете да използвате и{" "}
+                <a href="/contact" className="text-paper-green underline">
+                  формата за контакт
+                </a>{" "}
+                на нашия Сайт.
               </p>
             </div>
           </section>

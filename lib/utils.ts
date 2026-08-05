@@ -1,14 +1,19 @@
 import { ReadonlyURLSearchParams } from "next/navigation";
+import { SITE_URL } from "lib/constants";
 
-/** Auto-detect site URL: Vercel deployment or localhost in dev. */
+/**
+ * Site URL for metadata, emails, sitemap, Stripe redirects.
+ * Prefers NEXT_PUBLIC_SITE_URL, then production domain; localhost only in development.
+ */
 export function getBaseUrl(): string {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromEnv) {
+    return fromEnv.replace(/\/$/, "");
   }
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3000";
   }
-  return "http://localhost:3000";
+  return SITE_URL;
 }
 
 export const baseUrl = getBaseUrl();

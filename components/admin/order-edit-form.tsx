@@ -15,7 +15,7 @@ interface OrderEditFormProps {
     customer_phone?: string;
     customer_address: string;
     total_price: number;
-    payment_method: "cash_on_delivery" | "card";
+    payment_method: "cash_on_delivery" | "card" | "bank_transfer";
     status: string;
     comment?: string;
     created_at: string;
@@ -66,6 +66,7 @@ export function OrderEditForm({ order }: OrderEditFormProps) {
       });
       toast.success("Поръчката е обновена успешно!");
       router.refresh();
+      router.push("/admin/orders");
     } catch (error) {
       console.error("Error updating order:", error);
       toast.error("Грешка при обновяване на поръчката");
@@ -191,13 +192,17 @@ export function OrderEditForm({ order }: OrderEditFormProps) {
           onChange={(e) =>
             setFormData({
               ...formData,
-              payment_method: e.target.value as "cash_on_delivery" | "card",
+              payment_method: e.target.value as
+                | "cash_on_delivery"
+                | "card"
+                | "bank_transfer",
             })
           }
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
           disabled={loading}
         >
           <option value="cash_on_delivery">Наложен платеж</option>
+          <option value="bank_transfer">Банков превод</option>
           <option value="card">Плащане с карта</option>
         </select>
       </div>

@@ -1,5 +1,8 @@
 export const SITE_NAME = "PaperOK";
 
+/** Canonical production site URL */
+export const SITE_URL = "https://paperok.bg";
+
 /** Transparent logo for UI on cream/colored backgrounds */
 export const LOGO_TRANSPARENT = "/logo-removebg-preview.png";
 
@@ -45,6 +48,13 @@ export const sorting: SortFilterItem[] = [
   },
 ];
 
+/** Root shop sections in the top nav — must match collection handles in the DB. */
+export const MAIN_MENU_SECTIONS = [
+  { handle: "kartichki", title: "Картички" },
+  { handle: "podaraci", title: "Подаръци" },
+  { handle: "semenna-hartia", title: "Семенна хартия" },
+] as const;
+
 export const FIXED_MENU = [
   { title: "Начало", path: "/" },
   { title: "Картички", path: "/products?collection=kartichki" },
@@ -72,6 +82,8 @@ export const CONTACT_EMAIL = "paperok.info@gmail.com";
 export const INSTAGRAM_URL = "https://www.instagram.com/paperok.official/";
 export const FACEBOOK_URL =
   "https://www.facebook.com/profile.php?id=61591837265074";
+export const YOUTUBE_URL = "https://www.youtube.com/@paperok.official";
+export const TIKTOK_URL = "https://www.tiktok.com/@paperok.official";
 export const CONTACT_LOCATION = "София, България";
 
 /** Card checkout is shown only when the publishable Stripe key is set. */

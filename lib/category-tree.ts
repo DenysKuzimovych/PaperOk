@@ -82,6 +82,45 @@ export function getDescendantHandles(node: CategoryNode): string[] {
   return handles;
 }
 
+export function findCategoryNode(
+  nodes: CategoryNode[],
+  handle: string,
+): CategoryNode | null {
+  for (const node of nodes) {
+    if (node.handle === handle) return node;
+    const found = findCategoryNode(node.children, handle);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Walk up parent_id to the root category (main menu section). */
+export function getRootOfCategory(
+  categories: FlatCategory[],
+  categoryId: string,
+): FlatCategory | null {
+  const map = new Map(categories.map((c) => [c.id, c]));
+  let node = map.get(categoryId);
+  if (!node) return null;
+  while (node.parent_id && map.has(node.parent_id)) {
+    node = map.get(node.parent_id)!;
+  }
+  return node;
+}
+
+/**
+ * Handles to filter products by when visiting a collection URL:
+ * the category itself plus all descendants (so "Подаръци" includes leaf products).
+ */
+export function getHandlesForCollectionFilter(
+  categories: FlatCategory[],
+  handle: string,
+): string[] {
+  const node = findCategoryNode(buildCategoryTree(categories), handle);
+  if (!node) return [handle];
+  return getDescendantHandles(node);
+}
+
 /**
  * Keep only categories that have available products on themselves
  * or anywhere in their descendant subtree. Empty leaf/branch categories

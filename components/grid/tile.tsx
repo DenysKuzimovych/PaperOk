@@ -26,7 +26,7 @@ export const GridTileImage = memo(function GridTileImage({
   return (
     <div
       className={clsx(
-        "group flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-paper-white hover:border-paper-border",
+        "group flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-paper-bg hover:border-paper-border",
         {
           relative: label,
           "border-2 border-paper-border": active,

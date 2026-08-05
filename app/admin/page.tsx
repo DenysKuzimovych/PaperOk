@@ -1,8 +1,12 @@
 import { getAllOrders } from "lib/supabase/orders";
+import { getAllContactInquiries } from "lib/supabase/admin-contact-inquiries";
 import Link from "next/link";
 
 export default async function AdminDashboard() {
-  const orders = await getAllOrders();
+  const [orders, inquiries] = await Promise.all([
+    getAllOrders(),
+    getAllContactInquiries().catch(() => []),
+  ]);
 
   // Get Monday of this week (start of week)
   const now = new Date();
@@ -20,6 +24,7 @@ export default async function AdminDashboard() {
   const stats = {
     totalOrders: orders.length,
     newOrders: orders.filter((o) => o.status === "new").length,
+    newInquiries: inquiries.filter((i) => i.status === "new").length,
     totalRevenue: ordersThisWeek
       .filter((o) => o.status !== "canceled")
       .reduce((sum, o) => sum + Number(o.total_price), 0),
@@ -37,7 +42,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Общо Поръчки
@@ -54,6 +59,17 @@ export default async function AdminDashboard() {
             {stats.newOrders}
           </p>
         </div>
+        <Link
+          href="/admin/inquiries"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-shadow hover:shadow-md"
+        >
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Нови запитвания
+          </h3>
+          <p className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">
+            {stats.newInquiries}
+          </p>
+        </Link>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Приход от Понеделник насам
@@ -117,7 +133,9 @@ export default async function AdminDashboard() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {order.payment_method === "cash_on_delivery"
                       ? "Наложен платеж"
-                      : "Плащане с карта"}
+                      : order.payment_method === "bank_transfer"
+                        ? "Банков превод"
+                        : "Плащане с карта"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span

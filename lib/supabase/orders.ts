@@ -14,9 +14,18 @@ export interface CreateOrderData {
     variant_name?: string;
   }>;
   total_price: number;
-  payment_method: "cash_on_delivery" | "card";
+  products_subtotal?: number;
+  payment_method: "cash_on_delivery" | "card" | "bank_transfer";
   comment?: string;
   idempotency_key?: string;
+  shipping_method?: "office" | "apt" | "address";
+  shipping_price?: number;
+  shipping_site_id?: number;
+  shipping_site_name?: string;
+  shipping_office_id?: number;
+  shipping_office_name?: string;
+  shipping_deadline?: string;
+  shipping_details?: Record<string, unknown>;
 }
 
 export type OrderStatus =
@@ -66,10 +75,19 @@ export async function createOrder(data: CreateOrderData) {
       customer_address: data.customer_address,
       products: productsJson,
       total_price: data.total_price,
+      products_subtotal: data.products_subtotal ?? null,
       payment_method: data.payment_method,
       status: initialStatus,
       comment: data.comment || null,
       idempotency_key: data.idempotency_key || null,
+      shipping_method: data.shipping_method || null,
+      shipping_price: data.shipping_price ?? 0,
+      shipping_site_id: data.shipping_site_id ?? null,
+      shipping_site_name: data.shipping_site_name || null,
+      shipping_office_id: data.shipping_office_id ?? null,
+      shipping_office_name: data.shipping_office_name || null,
+      shipping_deadline: data.shipping_deadline || null,
+      shipping_details: data.shipping_details || null,
     })
     .select()
     .single();
@@ -186,7 +204,10 @@ export async function fulfillPaidOrder(orderId: string) {
       customerPhone: updated.customer_phone || undefined,
       customerAddress: updated.customer_address,
       totalPrice: Number(updated.total_price),
-      paymentMethod: updated.payment_method as "cash_on_delivery" | "card",
+      paymentMethod: updated.payment_method as
+        | "cash_on_delivery"
+        | "card"
+        | "bank_transfer",
       products: (updated.products as any[]).map((p: any) => ({
         id: p.id,
         name: p.variant_name ? `${p.name} (${p.variant_name})` : p.name,
@@ -230,7 +251,10 @@ export async function fulfillCodOrder(orderId: string) {
     customerPhone: order.customer_phone || undefined,
     customerAddress: order.customer_address,
     totalPrice: Number(order.total_price),
-    paymentMethod: "cash_on_delivery",
+    paymentMethod: (order.payment_method || "cash_on_delivery") as
+      | "cash_on_delivery"
+      | "card"
+      | "bank_transfer",
     products: (order.products as any[]).map((p: any) => ({
       id: p.id,
       name: p.variant_name ? `${p.name} (${p.variant_name})` : p.name,
@@ -299,7 +323,7 @@ export interface UpdateOrderData {
   customer_phone?: string;
   customer_address?: string;
   total_price?: number;
-  payment_method?: "cash_on_delivery" | "card";
+  payment_method?: "cash_on_delivery" | "card" | "bank_transfer";
   status?: OrderStatus;
   comment?: string;
   created_at?: string;

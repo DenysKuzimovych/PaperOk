@@ -7,6 +7,12 @@ import Price from "components/price";
 import { createOrder } from "app/checkout/actions";
 import LoadingDots from "components/loading-dots";
 import { CARD_PAYMENTS_ENABLED } from "lib/constants";
+import {
+  SpeedyShippingForm,
+  type SpeedyShippingSelection,
+} from "components/checkout/speedy-shipping-form";
+
+type PaymentMethod = "cash_on_delivery" | "card" | "bank_transfer";
 
 function generateIdempotencyKey() {
   return crypto.randomUUID();
@@ -17,13 +23,15 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shipping, setShipping] = useState<SpeedyShippingSelection | null>(
+    null,
+  );
   const idempotencyKeyRef = useRef(generateIdempotencyKey());
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_email: "",
     customer_phone: "",
-    customer_address: "",
-    payment_method: "cash_on_delivery" as "cash_on_delivery" | "card",
+    payment_method: "cash_on_delivery" as PaymentMethod,
     comment: "",
     privacy_policy_accepted: false,
   });
@@ -49,13 +57,27 @@ export default function CheckoutPage() {
     );
   }
 
+  const productsSubtotal = cart.subtotal;
+  const shippingPrice = shipping?.shippingPrice ?? 0;
+  const grandTotal = productsSubtotal + shippingPrice;
+  const itemCount = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!shipping) {
+      setError("Моля, изберете населено място и начин на доставка");
+      return;
+    }
+    if (!formData.customer_phone.trim()) {
+      setError("Телефонът е задължителен за доставка със Speedy");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Prepare products data
       const products = cart.items.map((item) => ({
         id: item.productId,
         name: item.product.title,
@@ -71,29 +93,40 @@ export default function CheckoutPage() {
         {
           customer_name: formData.customer_name,
           customer_email: formData.customer_email,
-          customer_phone: formData.customer_phone || undefined,
-          customer_address: formData.customer_address,
+          customer_phone: formData.customer_phone,
+          customer_address: shipping.customerAddressSummary,
           products,
-          total_price: cart.total,
+          products_subtotal: productsSubtotal,
+          total_price: grandTotal,
           payment_method: formData.payment_method,
           comment: formData.comment || undefined,
           idempotency_key: idempotencyKeyRef.current,
+          shipping_method: shipping.method,
+          shipping_price: shipping.shippingPrice,
+          shipping_site_id: shipping.siteId,
+          shipping_site_name: shipping.siteName,
+          shipping_office_id: shipping.officeId,
+          shipping_office_name: shipping.officeName,
+          shipping_deadline: shipping.deliveryDeadline,
+          shipping_details: {
+            addressLine: shipping.addressLine,
+            method: shipping.method,
+          },
         },
         cart.items,
       );
 
-      // If card payment, redirect to Stripe
       if (formData.payment_method === "card") {
         if (!CARD_PAYMENTS_ENABLED) {
           throw new Error("Плащането с карта не е налично");
         }
-        // Redirect to Stripe checkout
         const response = await fetch("/api/checkout/create-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId: order.id,
-            cart: cart,
+            cart,
+            shippingPrice: shipping.shippingPrice,
           }),
         });
 
@@ -107,7 +140,6 @@ export default function CheckoutPage() {
           return;
         }
       } else {
-        // Cash on delivery - redirect to success page
         router.push(`/checkout/success?orderId=${order.id}`);
       }
     } catch (err: any) {
@@ -118,30 +150,32 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-paper-bg py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-paper-heading mb-8">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="mb-8 text-3xl font-bold text-paper-heading">
           Финализиране на поръчката
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Order Form */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-paper-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-6 text-paper-heading">
-                Данни за доставка
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-lg bg-paper-white p-6 shadow"
+            >
+              <h2 className="mb-6 text-xl font-semibold text-paper-heading">
+                Данни за поръчката
               </h2>
 
-              {error && (
-                <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error ? (
+                <div className="mb-4 rounded border border-red-400 bg-red-100 p-4 text-red-700">
                   {error}
                 </div>
-              )}
+              ) : null}
 
               <div className="space-y-4">
                 <div>
                   <label
                     htmlFor="customer_name"
-                    className="block text-sm font-medium text-paper-heading mb-1"
+                    className="mb-1 block text-sm font-medium text-paper-heading"
                   >
                     Име и фамилия *
                   </label>
@@ -151,16 +185,19 @@ export default function CheckoutPage() {
                     required
                     value={formData.customer_name}
                     onChange={(e) =>
-                      setFormData({ ...formData, customer_name: e.target.value })
+                      setFormData({
+                        ...formData,
+                        customer_name: e.target.value,
+                      })
                     }
-                    className="w-full px-4 py-2 border border-paper-border rounded-lg focus:ring-2 focus:ring-paper-green focus:border-transparent"
+                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="customer_email"
-                    className="block text-sm font-medium text-paper-heading mb-1"
+                    className="mb-1 block text-sm font-medium text-paper-heading"
                   >
                     Имейл *
                   </label>
@@ -170,53 +207,47 @@ export default function CheckoutPage() {
                     required
                     value={formData.customer_email}
                     onChange={(e) =>
-                      setFormData({ ...formData, customer_email: e.target.value })
+                      setFormData({
+                        ...formData,
+                        customer_email: e.target.value,
+                      })
                     }
-                    className="w-full px-4 py-2 border border-paper-border rounded-lg focus:ring-2 focus:ring-paper-green focus:border-transparent"
+                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="customer_phone"
-                    className="block text-sm font-medium text-paper-heading mb-1"
+                    className="mb-1 block text-sm font-medium text-paper-heading"
                   >
-                    Телефон
+                    Телефон *
                   </label>
                   <input
                     type="tel"
                     id="customer_phone"
+                    required
                     value={formData.customer_phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, customer_phone: e.target.value })
+                      setFormData({
+                        ...formData,
+                        customer_phone: e.target.value,
+                      })
                     }
-                    className="w-full px-4 py-2 border border-paper-border rounded-lg focus:ring-2 focus:ring-paper-green focus:border-transparent"
+                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
+                    placeholder="08XXXXXXXX"
                   />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="customer_address"
-                    className="block text-sm font-medium text-paper-heading mb-1"
-                  >
-                    Адрес за доставка *
-                  </label>
-                  <textarea
-                    id="customer_address"
-                    required
-                    rows={3}
-                    value={formData.customer_address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customer_address: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-paper-border rounded-lg focus:ring-2 focus:ring-paper-green focus:border-transparent"
-                  />
-                </div>
+                <SpeedyShippingForm
+                  itemCount={itemCount}
+                  onChange={setShipping}
+                />
 
                 <div>
                   <label
                     htmlFor="comment"
-                    className="block text-sm font-medium text-paper-heading mb-1"
+                    className="mb-1 block text-sm font-medium text-paper-heading"
                   >
                     Коментар (по избор)
                   </label>
@@ -227,25 +258,27 @@ export default function CheckoutPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, comment: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-paper-border rounded-lg focus:ring-2 focus:ring-paper-green focus:border-transparent"
+                    className="w-full rounded-lg border border-paper-border px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-paper-green"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-paper-heading mb-3">
+                  <label className="mb-3 block text-sm font-medium text-paper-heading">
                     Начин на плащане *
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center p-4 border border-paper-border rounded-lg cursor-pointer hover:bg-paper-bg">
+                    <label className="flex cursor-pointer items-center rounded-lg border border-paper-border p-4 hover:bg-paper-bg">
                       <input
                         type="radio"
                         name="payment_method"
                         value="cash_on_delivery"
-                        checked={formData.payment_method === "cash_on_delivery"}
+                        checked={
+                          formData.payment_method === "cash_on_delivery"
+                        }
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            payment_method: e.target.value as "cash_on_delivery" | "card",
+                            payment_method: e.target.value as PaymentMethod,
                           })
                         }
                         className="mr-3"
@@ -255,41 +288,65 @@ export default function CheckoutPage() {
                           Наложен платеж
                         </div>
                         <div className="text-sm text-paper-muted">
-                          Плащане при получаване на поръчката
+                          Плащане при получаване на пратката
                         </div>
                       </div>
                     </label>
 
-                    {CARD_PAYMENTS_ENABLED ? (
-                    <label className="flex items-center p-4 border border-paper-border rounded-lg cursor-pointer hover:bg-paper-bg">
+                    <label className="flex cursor-pointer items-center rounded-lg border border-paper-border p-4 hover:bg-paper-bg">
                       <input
                         type="radio"
                         name="payment_method"
-                        value="card"
-                        checked={formData.payment_method === "card"}
+                        value="bank_transfer"
+                        checked={formData.payment_method === "bank_transfer"}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            payment_method: e.target.value as "cash_on_delivery" | "card",
+                            payment_method: e.target.value as PaymentMethod,
                           })
                         }
                         className="mr-3"
                       />
                       <div>
                         <div className="font-medium text-paper-heading">
-                          Плащане с карта
+                          Банков превод
                         </div>
                         <div className="text-sm text-paper-muted">
-                          Сигурно плащане чрез Stripe
+                          Ще получите данни за плащане след потвърждение
                         </div>
                       </div>
                     </label>
+
+                    {CARD_PAYMENTS_ENABLED ? (
+                      <label className="flex cursor-pointer items-center rounded-lg border border-paper-border p-4 hover:bg-paper-bg">
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value="card"
+                          checked={formData.payment_method === "card"}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              payment_method: e.target.value as PaymentMethod,
+                            })
+                          }
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-medium text-paper-heading">
+                            Плащане с карта
+                          </div>
+                          <div className="text-sm text-paper-muted">
+                            Сигурно плащане чрез Stripe
+                          </div>
+                        </div>
+                      </label>
                     ) : null}
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <label className="flex items-start space-x-3 cursor-pointer">
+                  <label className="flex cursor-pointer items-start space-x-3">
                     <input
                       type="checkbox"
                       required
@@ -300,7 +357,7 @@ export default function CheckoutPage() {
                           privacy_policy_accepted: e.target.checked,
                         })
                       }
-                      className="mt-1 h-4 w-4 text-paper-green focus:ring-paper-green border-paper-border rounded"
+                      className="mt-1 h-4 w-4 rounded border-paper-border text-paper-green focus:ring-paper-green"
                     />
                     <span className="text-sm text-paper-heading">
                       Съгласен съм с{" "}
@@ -312,15 +369,20 @@ export default function CheckoutPage() {
                       >
                         Политиката за поверителност
                       </a>{" "}
-                      и се съгласявам обработката на моите лични данни за целите на поръчката. *
+                      и се съгласявам обработката на моите лични данни за целите
+                      на поръчката. *
                     </span>
                   </label>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !formData.privacy_policy_accepted}
-                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  disabled={
+                    isSubmitting ||
+                    !formData.privacy_policy_accepted ||
+                    !shipping
+                  }
+                  className="btn-primary flex w-full items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <LoadingDots className="bg-paper-white" />
@@ -332,18 +394,17 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-paper-white rounded-lg shadow p-6 sticky top-4">
-              <h2 className="text-xl font-semibold mb-4 text-paper-heading">
+            <div className="sticky top-4 rounded-lg bg-paper-white p-6 shadow">
+              <h2 className="mb-4 text-xl font-semibold text-paper-heading">
                 Резюме на поръчката
               </h2>
 
-              <div className="space-y-4 mb-6">
+              <div className="mb-6 space-y-4">
                 {cart.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex justify-between items-start border-b border-paper-border pb-3"
+                    className="flex items-start justify-between border-b border-paper-border pb-3"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-paper-heading">
@@ -362,31 +423,37 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-paper-border">
+              <div className="space-y-2 border-t border-paper-border pt-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-paper-text">Междинна сума</span>
+                  <span className="text-paper-text">Продукти</span>
                   <Price
-                    amount={cart.subtotal.toString()}
+                    amount={productsSubtotal.toString()}
                     currencyCode={cart.currency}
                     className="font-medium"
                   />
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-paper-text">Доставка</span>
-                  <span className="text-paper-text">
-                    Ще се изчисли при плащане
-                  </span>
+                  <span className="text-paper-text">Доставка (Speedy)</span>
+                  {shipping ? (
+                    <Price
+                      amount={shippingPrice.toString()}
+                      currencyCode={cart.currency}
+                      className="font-medium"
+                    />
+                  ) : (
+                    <span className="text-paper-muted">Изберете доставка</span>
+                  )}
                 </div>
-                <div className="flex justify-between text-lg font-bold pt-2">
+                <div className="flex justify-between pt-2 text-lg font-bold">
                   <span className="text-paper-heading">Общо</span>
                   <Price
-                    amount={cart.total.toString()}
+                    amount={grandTotal.toString()}
                     currencyCode={cart.currency}
                     className="text-paper-green"
                   />
                 </div>
-                <div className="mt-4 pt-4 border-t border-paper-border">
-                  <p className="text-xs text-center text-paper-muted">
+                <div className="mt-4 border-t border-paper-border pt-4">
+                  <p className="text-center text-xs text-paper-muted">
                     Цените се изчисляват по курс 1 EUR = 1.95583 BGN
                   </p>
                 </div>

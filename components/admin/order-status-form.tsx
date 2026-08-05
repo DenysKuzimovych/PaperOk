@@ -28,6 +28,7 @@ export function OrderStatusForm({
       await updateOrderStatus(orderId, status);
       toast.success("Статусът е обновен успешно!");
       router.refresh();
+      router.push("/admin/orders");
     } catch (error) {
       console.error("Error updating order status:", error);
       toast.error("Грешка при обновяване на статуса");

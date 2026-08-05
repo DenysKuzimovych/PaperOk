@@ -9,7 +9,12 @@ import {
   MegaphoneIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
+import { PaperTexture } from "components/ui/paper-texture";
+import { Reveal } from "components/ui/reveal";
+import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import type { ComponentType, SVGProps } from "react";
+
+const CARD_BG = PAPER_BACKGROUNDS.petalsSoft;
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -27,7 +32,7 @@ const products: { title: string; icon: IconComponent }[] = [
 
 function ProductIcon({ icon: Icon }: { icon: IconComponent }) {
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-paper-green/20 bg-paper-accent-bg/60">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-paper-green/20 bg-paper-accent-bg/60 transition-transform duration-300 group-hover:scale-110">
       <Icon className="h-5 w-5 text-paper-green" strokeWidth={1.5} aria-hidden />
     </div>
   );
@@ -35,20 +40,37 @@ function ProductIcon({ icon: Icon }: { icon: IconComponent }) {
 
 export function BusinessProducts() {
   return (
-    <section className="py-16 md:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="font-heading mb-10 text-center text-3xl font-bold text-paper-heading">
-          Какво изработваме
-        </h2>
+    <section className="relative overflow-hidden bg-paper-bg py-16 md:py-20">
+      <PaperTexture
+        src={PAPER_BACKGROUNDS.plain}
+        overlay={PAPER_OVERLAYS.cream}
+        sizes="100vw"
+        quality={85}
+      />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <Reveal>
+          <h2 className="font-heading mb-10 text-center text-3xl font-bold text-paper-heading">
+            Какво изработваме
+          </h2>
+        </Reveal>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <div
-              key={product.title}
-              className="group flex items-center gap-4 rounded-xl border border-paper-border bg-paper-white p-5 transition-colors hover:border-paper-green/30 hover:bg-paper-accent-bg/20"
-            >
-              <ProductIcon icon={product.icon} />
-              <span className="font-medium text-paper-heading">{product.title}</span>
-            </div>
+          {products.map((product, index) => (
+            <Reveal key={product.title} delay={index * 60} variant="up">
+              <div className="group hover-lift relative flex items-center gap-4 overflow-hidden rounded-xl border border-paper-border p-5 transition-colors hover:border-paper-green/30">
+                <PaperTexture
+                  src={CARD_BG}
+                  overlay={PAPER_OVERLAYS.white}
+                  sizes="(min-width: 1024px) 33vw, 50vw"
+                  quality={82}
+                />
+                <div className="relative z-10 flex items-center gap-4">
+                  <ProductIcon icon={product.icon} />
+                  <span className="font-medium text-paper-heading">
+                    {product.title}
+                  </span>
+                </div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>

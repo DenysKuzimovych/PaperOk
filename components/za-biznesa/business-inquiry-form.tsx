@@ -1,5 +1,7 @@
 "use client";
 
+import { PaperTexture } from "components/ui/paper-texture";
+import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import { useState } from "react";
 
 const productTypes = [
@@ -16,7 +18,9 @@ const productTypes = [
 ];
 
 const inputClass =
-  "w-full rounded-lg border border-paper-border bg-paper-white px-4 py-2 text-paper-heading focus:border-paper-green focus:outline-none focus:ring-1 focus:ring-paper-green";
+  "w-full rounded-xl border border-paper-border/80 bg-paper-bg/90 px-4 py-2.5 text-sm text-paper-heading shadow-[var(--paper-shadow)] transition-colors focus:border-paper-green focus:outline-none focus:ring-2 focus:ring-paper-green/25";
+
+const selectClass = "paper-select";
 
 export function BusinessInquiryForm() {
   const [formData, setFormData] = useState({
@@ -88,7 +92,14 @@ export function BusinessInquiryForm() {
   };
 
   return (
-    <div className="rounded-2xl border border-paper-border bg-paper-white p-6 shadow-sm md:p-8">
+    <div className="relative overflow-hidden rounded-2xl border border-paper-border p-6 shadow-sm md:p-8">
+      <PaperTexture
+        src={PAPER_BACKGROUNDS.petalsSoft}
+        overlay={PAPER_OVERLAYS.white}
+        sizes="(min-width: 768px) 42rem, 100vw"
+        quality={80}
+      />
+      <div className="relative z-10">
       <h2 className="font-heading mb-6 text-2xl font-bold text-paper-heading">
         Форма за запитване
       </h2>
@@ -198,7 +209,7 @@ export function BusinessInquiryForm() {
               onChange={(e) =>
                 setFormData({ ...formData, productType: e.target.value })
               }
-              className={inputClass}
+              className={selectClass}
             >
               <option value="">Изберете вид продукт</option>
               {productTypes.map((type) => (
@@ -284,6 +295,7 @@ export function BusinessInquiryForm() {
           {isSubmitting ? "Изпращане..." : "Изпрати запитване"}
         </button>
       </form>
+      </div>
     </div>
   );
 }

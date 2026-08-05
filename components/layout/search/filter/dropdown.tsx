@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import type { ListItem } from ".";
 import { FilterItem } from "./item";
+import clsx from "clsx";
 
 export default function FilterItemDropdown({ list }: { list: ListItem[] }) {
   const pathname = usePathname();
@@ -38,21 +39,26 @@ export default function FilterItemDropdown({ list }: { list: ListItem[] }) {
 
   return (
     <div className="relative" ref={ref}>
-      <div
-        onClick={() => {
-          setOpenSelect(!openSelect);
-        }}
-        className="flex w-full items-center justify-between rounded-sm border border-black/30 px-4 py-2 text-sm"
+      <button
+        type="button"
+        onClick={() => setOpenSelect(!openSelect)}
+        aria-expanded={openSelect}
+        className={clsx(
+          "paper-dropdown-trigger w-full",
+          openSelect && "is-open",
+        )}
       >
-        <div>{active}</div>
-        <ChevronDownIcon className="h-4" />
-      </div>
+        <span>{active || "Изберете"}</span>
+        <ChevronDownIcon
+          className={`h-4 w-4 text-paper-green/70 transition-transform ${
+            openSelect ? "rotate-180" : ""
+          }`}
+        />
+      </button>
       {openSelect && (
         <div
-          onClick={() => {
-            setOpenSelect(false);
-          }}
-          className="absolute z-40 w-full rounded-b-md bg-paper-white p-4 shadow-md"
+          onClick={() => setOpenSelect(false)}
+          className="paper-dropdown-panel absolute z-40 mt-2 w-full p-2"
         >
           {list.map((item: ListItem, i) => (
             <FilterItem key={i} item={item} />

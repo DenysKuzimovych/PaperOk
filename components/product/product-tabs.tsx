@@ -106,15 +106,29 @@ export function ProductTabs({ product }: { product: Product }) {
             <div>
               <h4 className="font-semibold text-paper-heading">Доставка</h4>
               <p className="mt-1">
-                Доставяме в цяла България чрез куриер. Срокът за доставка е 1–3
-                работни дни след изпращане. Срокът за изработка е 3–7 работни
-                дни.
+                Доставяме в цяла България чрез Speedy — до офис, автомат или
+                адрес. Цената се изчислява автоматично при поръчка. Ориентировъчен
+                срок след изпращане: 1–3 работни дни. Изработка: обикновено 3–7
+                работни дни.
               </p>
             </div>
             <div>
               <h4 className="font-semibold text-paper-heading">Плащане</h4>
               <p className="mt-1">
-                Плащане с банкова карта онлайн или наложен платеж при доставка.
+                Онлайн с карта, наложен платеж или банков превод.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-paper-heading">Повече информация</h4>
+              <p className="mt-1">
+                Вижте страницата{" "}
+                <a
+                  href="/dostavka-i-plashtane"
+                  className="text-paper-green underline"
+                >
+                  Доставка и плащане
+                </a>
+                .
               </p>
             </div>
             <div>

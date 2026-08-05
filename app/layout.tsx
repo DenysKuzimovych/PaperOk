@@ -55,6 +55,7 @@ export const metadata = {
     type: "website",
     locale: "bg_BG",
     siteName: SITE_NAME,
+    url: baseUrl,
     title: `${SITE_NAME} — Подаръци, които разцъфват`,
     description: SITE_TAGLINE,
     images: [

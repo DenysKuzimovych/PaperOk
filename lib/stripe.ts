@@ -30,6 +30,7 @@ export async function createCheckoutSession(
   customerEmail: string,
   successUrl: string,
   cancelUrl: string,
+  shippingPrice = 0,
 ) {
   const stripe = getStripe();
   const currency = "eur";
@@ -47,6 +48,19 @@ export async function createCheckoutSession(
     },
     quantity: item.quantity,
   }));
+
+  if (shippingPrice > 0) {
+    lineItems.push({
+      price_data: {
+        currency,
+        product_data: {
+          name: "Доставка Speedy",
+        },
+        unit_amount: Math.round(shippingPrice * 100),
+      },
+      quantity: 1,
+    } as any);
+  }
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],

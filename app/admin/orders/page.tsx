@@ -1,6 +1,9 @@
 import { getAllOrders } from "lib/supabase/orders";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminOrdersPage() {
   const orders = await getAllOrders();
 
@@ -98,7 +101,9 @@ export default async function AdminOrdersPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {order.payment_method === "cash_on_delivery"
                           ? "Наложен платеж"
-                          : "Карта"}
+                          : order.payment_method === "bank_transfer"
+                            ? "Банков превод"
+                            : "Карта"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

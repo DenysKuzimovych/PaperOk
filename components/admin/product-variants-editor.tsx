@@ -2,7 +2,15 @@
 
 import type { ProductSizeVariant } from "lib/types";
 
-const PRESET_SIZES = ["A7", "A6", "A5", "A4", "A3", "90×50 мм", "50×70 мм"];
+const PRESET_SIZES = [
+  "140 × 200 mm",
+  "100 × 143 mm",
+  "70 × 100 mm",
+  "A3",
+  "A4",
+  "A5",
+  "A6",
+];
 
 function newVariantId() {
   return crypto.randomUUID();

@@ -93,11 +93,126 @@ button {
   @apply inline-flex items-center justify-center rounded-lg bg-paper-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-paper-green-hover;
 }
 
-/* Animations */
+/* PaperOK dropdowns & selects */
+.paper-select {
+  width: 100%;
+  appearance: none;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--paper-border) 85%, transparent);
+  background-color: var(--paper-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235E7F3A'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-position: right 0.85rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding: 0.65rem 2.5rem 0.65rem 1rem;
+  font-size: 0.875rem;
+  color: var(--paper-heading);
+  box-shadow: var(--paper-shadow);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.paper-select:hover {
+  border-color: color-mix(in srgb, var(--paper-green) 35%, var(--paper-border));
+  background-color: color-mix(in srgb, var(--paper-section) 55%, var(--paper-bg));
+}
+
+.paper-select:focus {
+  outline: none;
+  border-color: var(--paper-green);
+  box-shadow:
+    var(--paper-shadow),
+    0 0 0 3px color-mix(in srgb, var(--paper-green) 22%, transparent);
+}
+
+.paper-dropdown-panel {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--paper-border) 80%, transparent);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--paper-bg) 92%, white) 0%,
+      color-mix(in srgb, var(--paper-section) 55%, var(--paper-bg)) 100%
+    );
+  box-shadow: var(--paper-shadow-lg);
+}
+
+.paper-dropdown-trigger {
+  display: inline-flex;
+  min-width: 11rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--paper-border) 85%, transparent);
+  background-color: var(--paper-bg);
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--paper-heading);
+  box-shadow: var(--paper-shadow);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.paper-dropdown-trigger:hover {
+  border-color: color-mix(in srgb, var(--paper-green) 40%, var(--paper-border));
+  background-color: color-mix(in srgb, var(--paper-section) 60%, var(--paper-bg));
+}
+
+.paper-dropdown-trigger[aria-expanded="true"],
+.paper-dropdown-trigger.is-open {
+  border-color: var(--paper-green);
+  background-color: color-mix(in srgb, var(--paper-accent-bg) 70%, var(--paper-bg));
+  box-shadow:
+    var(--paper-shadow),
+    0 0 0 3px color-mix(in srgb, var(--paper-green) 18%, transparent);
+}
+
+.paper-dropdown-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--paper-heading);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.paper-dropdown-item:hover {
+  background-color: color-mix(in srgb, var(--paper-accent-bg) 75%, transparent);
+  color: var(--paper-green);
+}
+
+.paper-dropdown-item.is-active {
+  background-color: color-mix(in srgb, var(--paper-accent-bg) 90%, transparent);
+  color: var(--paper-green);
+  font-weight: 500;
+}
+
+.paper-dropdown-list {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--paper-border) 80%, transparent);
+  background: var(--paper-bg);
+  box-shadow: var(--paper-shadow);
+}
+
+/* Animations — soft & gentle */
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -108,7 +223,7 @@ button {
 @keyframes fade-in-right {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(12px);
   }
   to {
     opacity: 1;
@@ -126,27 +241,146 @@ button {
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.7s ease-out both;
+  animation: fade-in-up 1.05s cubic-bezier(0.33, 1, 0.68, 1) both;
 }
 
 .animate-fade-in-right {
-  animation: fade-in-right 0.8s ease-out 0.15s both;
+  animation: fade-in-right 1.15s cubic-bezier(0.33, 1, 0.68, 1) 0.12s both;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.6s ease-out both;
+  animation: fade-in 0.95s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+.animate-fadeIn {
+  animation: fade-in-up 0.95s cubic-bezier(0.33, 1, 0.68, 1) both;
 }
 
 .animate-delay-100 {
-  animation-delay: 0.1s;
+  animation-delay: 0.12s;
 }
 
 .animate-delay-200 {
-  animation-delay: 0.2s;
+  animation-delay: 0.22s;
 }
 
 .animate-delay-300 {
-  animation-delay: 0.3s;
+  animation-delay: 0.32s;
+}
+
+.animate-delay-400 {
+  animation-delay: 0.42s;
+}
+
+/* Scroll reveal (driven by Reveal component) */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 1.05s cubic-bezier(0.33, 1, 0.68, 1),
+    transform 1.05s cubic-bezier(0.33, 1, 0.68, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-up {
+  transform: translateY(12px);
+}
+
+.reveal-left {
+  transform: translateX(-12px);
+}
+
+.reveal-right {
+  transform: translateX(12px);
+}
+
+.reveal-scale {
+  transform: scale(0.985);
+}
+
+.reveal-fade {
+  transform: none;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.hover-lift {
+  transition:
+    transform 0.55s cubic-bezier(0.33, 1, 0.68, 1),
+    box-shadow 0.55s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Soft paper texture fallback (cards that don't use PaperTexture image yet) */
+.seed-paper-card {
+  background-color: rgba(255, 255, 255, 0.82);
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(221, 232, 204, 0.28), transparent 55%),
+    radial-gradient(circle at 1px 1px, rgba(74, 52, 40, 0.035) 0.6px, transparent 0.8px);
+  background-size: auto, 7px 7px;
+}
+
+.img-zoom {
+  transition: transform 0.9s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.group:hover .img-zoom {
+  transform: scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-up,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale,
+  .reveal-fade,
+  .reveal-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .animate-fade-in-up,
+  .animate-fade-in-right,
+  .animate-fade-in,
+  .animate-fadeIn {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .hover-lift:hover,
+  .group:hover .img-zoom {
+    transform: none !important;
+  }
+}
+
+@keyframes logo-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.logo-marquee {
+  animation: logo-marquee 42s linear infinite;
+}
+
+.logo-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-marquee {
+    animation: none;
+  }
 }
 
 @keyframes cart-bump {

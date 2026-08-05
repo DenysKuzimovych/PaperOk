@@ -1,5 +1,8 @@
 import type { Product, Collection } from "lib/types";
-import { filterCategoriesWithProducts } from "lib/category-tree";
+import {
+  filterCategoriesWithProducts,
+  getHandlesForCollectionFilter,
+} from "lib/category-tree";
 import { isProductPlantable } from "lib/product-plantable";
 import { cache } from "react";
 import { createServiceClient } from "./service";
@@ -34,12 +37,37 @@ export async function getProducts(params?: {
       .select("*")
       .eq("available", true);
 
+    const collectionHandle = params?.collection?.trim();
+    let collectionFlat:
+      | Array<{ id: string; handle: string; parent_id: string | null }>
+      | null = null;
+
     if (params?.query) {
       query = query.or(`title.ilike.%${params.query}%,description.ilike.%${params.query}%`);
     }
 
     if (params?.collection) {
-      query = query.eq("category", params.collection);
+      const collections = await getCollections();
+      const flat = collections.map((c) => ({
+        id: c.id,
+        handle: c.handle,
+        title: c.title,
+        description: c.description,
+        position: c.position ?? 0,
+        parent_id: c.parentId ?? null,
+      }));
+      collectionFlat = flat.map((c) => ({
+        id: c.id,
+        handle: c.handle,
+        parent_id: c.parent_id,
+      }));
+
+      const handles = getHandlesForCollectionFilter(flat, collectionHandle || "");
+      if (handles.length === 1) {
+        query = query.eq("category", handles[0]);
+      } else {
+        query = query.in("category", handles);
+      }
     }
 
     // Filter by multiple categories
@@ -88,7 +116,7 @@ export async function getProducts(params?: {
       query = query.order("created_at", { ascending: false });
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
 
     if (error) {
       console.error("Error fetching products:", error.message || error);
@@ -97,6 +125,87 @@ export async function getProducts(params?: {
 
     if (!data) {
       return [];
+    }
+
+    // Fallback: if collection filtering returns empty, try to determine the root
+    // for each product's category by walking parents upwards.
+    if (
+      collectionHandle &&
+      params?.collection &&
+      Array.isArray(data) &&
+      data.length === 0 &&
+      collectionFlat
+    ) {
+      const idMap = new Map(collectionFlat.map((c) => [c.id, c]));
+      const handleMap = new Map(collectionFlat.map((c) => [c.handle, c]));
+
+      const getRootHandleForCategory = (categoryHandle: string) => {
+        const node = handleMap.get(categoryHandle);
+        if (!node) return categoryHandle;
+
+        let cur = node;
+        while (cur.parent_id && idMap.has(cur.parent_id)) {
+          cur = idMap.get(cur.parent_id)!;
+        }
+        return cur.handle;
+      };
+
+      let fallbackQuery = supabase
+        .from("products")
+        .select("*")
+        .eq("available", true);
+
+      if (params?.query) {
+        fallbackQuery = fallbackQuery.or(
+          `title.ilike.%${params.query}%,description.ilike.%${params.query}%`
+        );
+      }
+
+      if (params?.categories && params.categories.length > 0) {
+        fallbackQuery = fallbackQuery.in("category", params.categories);
+      }
+
+      if (params?.minPrice !== undefined) {
+        fallbackQuery = fallbackQuery.gte("price", params.minPrice);
+      }
+      if (params?.maxPrice !== undefined) {
+        fallbackQuery = fallbackQuery.lte("price", params.maxPrice);
+      }
+
+      if (params?.excludeId) {
+        fallbackQuery = fallbackQuery.neq("id", params.excludeId);
+      }
+
+      if (sort === "price-asc") {
+        fallbackQuery = fallbackQuery.order("price", { ascending: true });
+      } else if (sort === "price-desc") {
+        fallbackQuery = fallbackQuery.order("price", { ascending: false });
+      } else if (sort === "name-asc") {
+        fallbackQuery = fallbackQuery.order("title", { ascending: true });
+      } else if (sort === "newest") {
+        fallbackQuery = fallbackQuery.order("created_at", { ascending: false });
+      } else {
+        // Default: position
+        fallbackQuery = fallbackQuery.order("position", { ascending: true });
+        fallbackQuery = fallbackQuery.order("created_at", { ascending: false });
+      }
+
+      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+      if (!fallbackError && fallbackData) {
+        const filteredRows = (fallbackData as any[]).filter(
+          (row) => getRootHandleForCategory(String(row.category)) === collectionHandle
+        );
+
+        const offset = params?.offset ?? 0;
+        const limit = params?.limit;
+
+        data =
+          limit !== undefined
+            ? filteredRows.slice(offset, offset + limit)
+            : offset
+              ? filteredRows.slice(offset)
+              : filteredRows;
+      }
     }
 
     let products = data.map(transformProduct);

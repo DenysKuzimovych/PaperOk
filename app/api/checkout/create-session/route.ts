@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       order.customer_email,
       `${baseUrl}/checkout/success?orderId=${orderId}`,
       `${baseUrl}/checkout/cancel?orderId=${orderId}`,
+      Number(order.shipping_price) || 0,
     );
 
     await updateOrderStripeSession(orderId, session.id);

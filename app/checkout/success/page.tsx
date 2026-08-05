@@ -18,7 +18,10 @@ export default async function CheckoutSuccessPage({
     try {
       order = await getOrderById(orderId);
 
-      if (order.payment_method === "cash_on_delivery") {
+      if (
+        order.payment_method === "cash_on_delivery" ||
+        order.payment_method === "bank_transfer"
+      ) {
         order = await fulfillCodOrder(orderId);
       } else if (order.payment_method === "card" && isStripeEnabled()) {
         // Verify payment via Stripe API (no webhook needed)
@@ -42,7 +45,8 @@ export default async function CheckoutSuccessPage({
   const isPaid =
     order?.status === "paid" ||
     order?.status === "completed" ||
-    order?.payment_method === "cash_on_delivery";
+    order?.payment_method === "cash_on_delivery" ||
+    order?.payment_method === "bank_transfer";
 
   return (
     <>
@@ -90,8 +94,21 @@ export default async function CheckoutSuccessPage({
                 <strong>Начин на плащане:</strong>{" "}
                 {order.payment_method === "cash_on_delivery"
                   ? "Наложен платеж"
-                  : "Плащане с карта"}
+                  : order.payment_method === "bank_transfer"
+                    ? "Банков превод"
+                    : "Плащане с карта"}
               </p>
+              {order.customer_address ? (
+                <p className="text-sm text-paper-text mb-2">
+                  <strong>Доставка:</strong> {order.customer_address}
+                </p>
+              ) : null}
+              {order.shipping_price != null ? (
+                <p className="text-sm text-paper-text mb-2">
+                  <strong>Цена доставка:</strong> €
+                  {Number(order.shipping_price).toFixed(2)}
+                </p>
+              ) : null}
               <p className="text-sm text-paper-text mb-2">
                 <strong>Статус:</strong>{" "}
                 {order.status === "paid"
@@ -105,6 +122,12 @@ export default async function CheckoutSuccessPage({
               {order.payment_method === "cash_on_delivery" && (
                 <p className="text-sm text-paper-text">
                   Ще платите при получаване на поръчката.
+                </p>
+              )}
+              {order.payment_method === "bank_transfer" && (
+                <p className="text-sm text-paper-text">
+                  Ще получите данни за банков превод след потвърждение на
+                  поръчката.
                 </p>
               )}
             </div>

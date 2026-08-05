@@ -33,7 +33,7 @@ function ExpandableCategory({
       <Link
         href={categoryHref(node.handle)}
         onClick={onNavigate}
-        className="block rounded-lg py-2 pr-3 text-sm text-paper-text transition-colors hover:bg-paper-section hover:text-paper-green"
+        className="block rounded-xl py-2 pr-3 text-sm text-paper-text transition-colors hover:bg-paper-accent-bg/80 hover:text-paper-green"
         style={{ paddingLeft: `${pad}px` }}
       >
         {node.title}
@@ -44,7 +44,7 @@ function ExpandableCategory({
   return (
     <div>
       <div
-        className="flex items-center gap-0.5 rounded-lg transition-colors hover:bg-paper-section"
+        className="flex items-center gap-0.5 rounded-xl transition-colors hover:bg-paper-accent-bg/80"
         style={{ paddingLeft: `${pad}px` }}
       >
         <button
@@ -159,16 +159,16 @@ export function ShopDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 pt-2 -translate-x-1/2">
-          <div className="max-h-[70vh] w-80 overflow-y-auto rounded-2xl border border-paper-border bg-paper-bg p-3 shadow-[var(--paper-shadow-lg)]">
+        <div className="absolute left-1/2 top-full z-50 pt-2.5 -translate-x-1/2">
+          <div className="paper-dropdown-panel max-h-[70vh] w-80 overflow-y-auto p-3.5">
             <Link
               href="/products"
               onClick={() => setOpen(false)}
-              className="mb-2 block rounded-lg bg-paper-accent-bg px-3 py-2.5 text-sm font-medium text-paper-heading transition-colors hover:bg-paper-section"
+              className="mb-2.5 block rounded-xl border border-paper-green/15 bg-paper-accent-bg/80 px-3.5 py-2.5 text-sm font-medium text-paper-heading transition-colors hover:border-paper-green/30 hover:bg-paper-accent-bg hover:text-paper-green"
             >
               Всички продукти
             </Link>
-            <p className="mb-1.5 px-1 text-[11px] uppercase tracking-wider text-paper-muted">
+            <p className="mb-2 px-1.5 font-heading text-[11px] tracking-wider text-paper-muted uppercase">
               Категории
             </p>
             {tree.length === 0 ? (

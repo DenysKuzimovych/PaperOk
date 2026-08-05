@@ -11,7 +11,8 @@ export default async function NewCollectionPage() {
           Нова Категория
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Създай нова категория
+          Изберете към кое главно меню на сайта да принадлежи категорията
+          (Картички, Подаръци или Семенна хартия)
         </p>
       </div>
 

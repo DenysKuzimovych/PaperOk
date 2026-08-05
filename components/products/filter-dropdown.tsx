@@ -95,12 +95,14 @@ export function FilterDropdown({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border border-paper-border text-sm font-medium transition-all duration-200 min-w-[140px] justify-between ${
+        aria-expanded={isOpen}
+        className={`paper-dropdown-trigger min-w-[140px] ${
           hasActiveFilters
-            ? "bg-paper-green text-white border-paper-green hover:bg-paper-green-hover"
-            : "bg-paper-white text-paper-heading shadow-sm hover:bg-paper-bg"
-        }`}
+            ? "border-paper-green bg-paper-green text-white hover:bg-paper-green-hover hover:border-paper-green"
+            : ""
+        } ${isOpen && !hasActiveFilters ? "is-open" : ""}`}
       >
         <div className="flex items-center gap-2">
           <FunnelIcon className="h-5 w-5" />
@@ -123,13 +125,14 @@ export function FilterDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-paper-white border border-paper-border rounded-lg shadow-lg z-50 max-h-[80vh] overflow-y-auto">
+        <div className="paper-dropdown-panel absolute top-full right-0 left-0 z-50 mt-2 max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto sm:right-0 sm:left-auto sm:w-80">
           <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-paper-heading">Филтри</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-heading text-lg font-semibold text-paper-heading">Филтри</h3>
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-paper-muted hover:text-paper-text"
+                className="rounded-full p-1 text-paper-muted transition-colors hover:bg-paper-accent-bg hover:text-paper-green"
                 aria-label="Затвори"
               >
                 <XMarkIcon className="h-5 w-5" />

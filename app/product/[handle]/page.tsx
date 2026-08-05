@@ -4,8 +4,11 @@ import { Gallery } from "components/product/gallery";
 import { BackButton } from "components/product/back-button";
 import { ProductDescription } from "components/product/product-description";
 import { ProductTabs } from "components/product/product-tabs";
+import { PaperTexture } from "components/ui/paper-texture";
+import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import { getProduct, getProducts } from "lib/supabase/products";
 import type { Image } from "lib/types";
+import { baseUrl } from "lib/utils";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,27 +21,59 @@ export async function generateMetadata(props: {
 
   if (!product) return notFound();
 
-  const { url, width, height, altText: alt } = product.featuredImage || {};
+  const featured = product.featuredImage;
+  const rawUrl = featured?.url?.trim() || "";
+  const isPlaceholder =
+    !rawUrl ||
+    rawUrl.includes("placeholder") ||
+    rawUrl.endsWith(".svg");
+
+  const imageUrl = isPlaceholder
+    ? undefined
+    : rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+      ? rawUrl
+      : `${baseUrl}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+
+  const description =
+    product.description?.trim() ||
+    `${product.title} — ръчно изработен продукт от семенна хартия от PaperOK.`;
+
+  const ogImages = imageUrl
+    ? [
+        {
+          url: imageUrl,
+          width: featured?.width || 1200,
+          height: featured?.height || 630,
+          alt: featured?.altText || product.title,
+        },
+      ]
+    : undefined;
 
   return {
     title: product.title,
-    description: product.description,
+    description,
     robots: {
       index: product.available,
       follow: product.available,
     },
-    openGraph: url
-      ? {
-          images: [
-            {
-              url,
-              width,
-              height,
-              alt: alt || product.title,
-            },
-          ],
-        }
-      : null,
+    alternates: {
+      canonical: `${baseUrl}/product/${product.handle}`,
+    },
+    openGraph: {
+      type: "website",
+      locale: "bg_BG",
+      siteName: "PaperOK",
+      title: product.title,
+      description,
+      url: `${baseUrl}/product/${product.handle}`,
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
   };
 }
 
@@ -49,15 +84,12 @@ export default async function ProductPage(props: {
   const product = await getProduct(params.handle);
 
   if (!product) return notFound();
-  
-  // Pre-compute images array to avoid recreating it on every render
+
   const galleryImages = [
-    // Главната снимка винаги е първа
     {
       src: product.featuredImage?.url || "",
       altText: product.featuredImage?.altText || product.title,
     },
-    // След това идват допълнителните снимки
     ...(product.images || []).slice(0, 4).map((image: Image) => ({
       src: image.url,
       altText: image.altText || product.title,
@@ -88,43 +120,70 @@ export default async function ProductPage(props: {
           __html: JSON.stringify(productJsonLd),
         }}
       />
-      <div className="mx-auto max-w-(--breakpoint-2xl) px-4">
-        <div className="flex flex-col rounded-lg border border-paper-border bg-paper-white p-8 md:p-12 lg:flex-row lg:gap-8">
-          <div className="relative h-full w-full basis-full lg:basis-4/6">
-            <BackButton />
-            <Gallery images={galleryImages} />
-          </div>
+      <div className="relative min-h-screen overflow-hidden bg-paper-bg">
+        <PaperTexture
+          src={PAPER_BACKGROUNDS.petalsSoft}
+          overlay={PAPER_OVERLAYS.cream}
+          sizes="100vw"
+          quality={88}
+        />
+        <div className="relative z-10 mx-auto max-w-(--breakpoint-2xl) px-4 py-8">
+          <div
+            className="relative flex flex-col overflow-hidden rounded-[1.35rem] border border-paper-border/70 p-8 md:p-12 lg:flex-row lg:gap-8"
+            style={{ boxShadow: "var(--paper-shadow)" }}
+          >
+            <PaperTexture
+              src={PAPER_BACKGROUNDS.petalsSoft}
+              overlay="rgba(255, 252, 247, 0.82)"
+              sizes="(min-width: 1024px) 90vw, 100vw"
+              quality={86}
+            />
+            <div className="animate-fade-in relative z-10 h-full w-full basis-full lg:basis-4/6">
+              <BackButton />
+              <Gallery images={galleryImages} />
+            </div>
 
-          <div className="basis-full lg:basis-2/6">
-            <ProductDescription product={product} />
+            <div className="animate-fade-in-up animate-delay-100 relative z-10 basis-full lg:basis-2/6">
+              <ProductDescription product={product} />
+            </div>
           </div>
+          <div className="animate-fade-in-up animate-delay-200 relative z-10">
+            <ProductTabs product={product} />
+          </div>
+          <RelatedProducts category={product.category} currentId={product.id} />
         </div>
-        <ProductTabs product={product} />
-        <RelatedProducts category={product.category} currentId={product.id} />
       </div>
       <Footer />
     </>
   );
 }
 
-async function RelatedProducts({ category, currentId }: { category?: string; currentId: string }) {
-  // Exclude current product directly in database query for better performance
-  const relatedProducts = await getProducts({ 
+async function RelatedProducts({
+  category,
+  currentId,
+}: {
+  category?: string;
+  currentId: string;
+}) {
+  const relatedProducts = await getProducts({
     collection: category,
     limit: 4,
-    excludeId: currentId
+    excludeId: currentId,
   });
 
   if (!relatedProducts.length) return null;
 
   return (
-    <div className="py-8">
-      <h2 className="mb-4 text-2xl font-bold">Свързани Продукти</h2>
+    <div className="relative z-10 py-8">
+      <h2 className="mb-4 font-heading text-2xl font-bold text-paper-heading">
+        Свързани Продукти
+      </h2>
       <ul className="flex w-full gap-4 overflow-x-auto pt-1">
-        {relatedProducts.map((product) => (
+        {relatedProducts.map((product, index) => (
           <li
             key={product.handle}
-            className="aspect-square w-full flex-none min-[475px]:w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
+            className="aspect-square w-full flex-none animate-fade-in-up min-[475px]:w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
+            style={{ animationDelay: `${index * 70}ms` }}
           >
             <Link
               className="relative h-full w-full"

@@ -1,5 +1,6 @@
 import Grid from "components/grid";
 import { GridTileImage } from "components/grid/tile";
+import { Reveal } from "components/ui/reveal";
 import { Product } from "lib/types";
 import Link from "next/link";
 
@@ -10,26 +11,32 @@ export default function ProductGridItems({
 }) {
   return (
     <>
-      {products.map((product) => (
-        <Grid.Item key={product.handle} className="animate-fadeIn">
-          <Link
-            className="relative inline-block h-full w-full"
-            href={`/product/${product.handle}`}
-            prefetch={true}
+      {products.map((product, index) => (
+        <Grid.Item key={product.handle}>
+          <Reveal
+            className="h-full w-full"
+            delay={Math.min(index, 7) * 70}
+            variant="up"
           >
-            <GridTileImage
-              alt={product.title}
-              label={{
-                title: product.title,
-                amount: product.price.toString(),
-                compareAtAmount: product.compareAtPrice?.toString(),
-                currencyCode: "EUR",
-              }}
-              src={product.featuredImage?.url}
-              fill
-              sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-            />
-          </Link>
+            <Link
+              className="relative inline-block h-full w-full"
+              href={`/product/${product.handle}`}
+              prefetch={true}
+            >
+              <GridTileImage
+                alt={product.title}
+                label={{
+                  title: product.title,
+                  amount: product.price.toString(),
+                  compareAtAmount: product.compareAtPrice?.toString(),
+                  currencyCode: "EUR",
+                }}
+                src={product.featuredImage?.url}
+                fill
+                sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+              />
+            </Link>
+          </Reveal>
         </Grid.Item>
       ))}
     </>

@@ -1,10 +1,10 @@
 import { Resend } from "resend";
 import {
   SITE_NAME,
+  SITE_URL,
   CONTACT_EMAIL,
   LOGO_WITH_BACKGROUND,
 } from "lib/constants";
-import { getBaseUrl } from "lib/utils";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -12,20 +12,20 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 /**
  * Where Resend actually delivers notifications.
  * Without a verified domain, Resend only allows sending TO the account email.
- * Set RESEND_TO_EMAIL to that address (e.g. avoex.contact@gmail.com) while testing.
+ * Set RESEND_TO_EMAIL to that address while testing.
  */
 const notificationTo =
   process.env.RESEND_TO_EMAIL || CONTACT_EMAIL;
 
 /**
  * From address. Without a verified domain use onboarding@resend.dev.
- * After verifying a domain: PaperOK <noreply@yourdomain.com>
+ * After verifying paperok.bg: PaperOK <noreply@paperok.bg>
  */
 const fromAddress =
   process.env.RESEND_FROM_EMAIL || "PaperOK <onboarding@resend.dev>";
 
 const siteName = SITE_NAME;
-const siteUrl = getBaseUrl();
+const siteUrl = SITE_URL;
 const logoUrl = `${siteUrl}${LOGO_WITH_BACKGROUND}`;
 
 function emailLogoHtml() {
@@ -61,7 +61,7 @@ export interface OrderNotificationData {
   customerPhone?: string;
   customerAddress: string;
   totalPrice: number;
-  paymentMethod: "cash_on_delivery" | "card";
+  paymentMethod: "cash_on_delivery" | "card" | "bank_transfer";
   products: Array<{
     id: string;
     name: string;
@@ -231,7 +231,13 @@ export async function sendNewOrderNotification(
         <p><strong>Имейл:</strong> ${escapeHtml(data.customerEmail)}</p>
         ${data.customerPhone ? `<p><strong>Телефон:</strong> ${escapeHtml(data.customerPhone)}</p>` : ""}
         <p><strong>Адрес:</strong> ${escapeHtml(data.customerAddress).replace(/\n/g, "<br>")}</p>
-        <p><strong>Плащане:</strong> ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}</p>
+        <p><strong>Плащане:</strong> ${
+          data.paymentMethod === "cash_on_delivery"
+            ? "Наложен платеж"
+            : data.paymentMethod === "bank_transfer"
+              ? "Банков превод"
+              : "Плащане с карта"
+        }</p>
         
         <h3>Артикули</h3>
         <ul>
@@ -255,7 +261,13 @@ export async function sendNewOrderNotification(
 Имейл: ${data.customerEmail}
 ${data.customerPhone ? `Телефон: ${data.customerPhone}\n` : ""}
 Адрес: ${data.customerAddress}
-Плащане: ${data.paymentMethod === "cash_on_delivery" ? "Наложен платеж" : "Плащане с карта"}
+Плащане: ${
+          data.paymentMethod === "cash_on_delivery"
+            ? "Наложен платеж"
+            : data.paymentMethod === "bank_transfer"
+              ? "Банков превод"
+              : "Плащане с карта"
+        }
 
 Артикули:
 ${productsList}

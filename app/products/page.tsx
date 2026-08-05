@@ -5,11 +5,14 @@ import { Breadcrumb } from "components/products/breadcrumb";
 import { CategoryTreeSidebar } from "components/products/category-tree-sidebar";
 import { FilterButton } from "components/products/filter-button";
 import { SortFilter } from "components/products/sort-filter";
+import { Reveal } from "components/ui/reveal";
+import { PaperTexture } from "components/ui/paper-texture";
 import {
   buildCategoryTree,
   getBreadcrumbPath,
   type FlatCategory,
 } from "lib/category-tree";
+import { PAPER_BACKGROUNDS, PAPER_OVERLAYS } from "lib/backgrounds";
 import { getProducts, getStorefrontCollections } from "lib/supabase/products";
 import { Metadata } from "next";
 
@@ -82,25 +85,36 @@ export default async function ProductsPage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 text-paper-heading md:flex-row">
-        {/* Category Tree Sidebar */}
-        <aside className="order-last w-full flex-none md:order-first md:w-64">
+      <div className="relative overflow-hidden bg-paper-bg">
+        <PaperTexture
+          src={PAPER_BACKGROUNDS.plain}
+          overlay={PAPER_OVERLAYS.cream}
+          sizes="100vw"
+          quality={82}
+        />
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-row gap-4 px-3 py-6 text-paper-heading sm:gap-6 sm:px-4 sm:py-8 md:gap-8">
+        {/* Category Tree Sidebar — thin column on the left (mobile + desktop) */}
+        <aside className="w-[7.5rem] flex-none sm:w-40 md:w-56 lg:w-64">
           <div className="sticky top-4">
-            <h2 className="mb-4 text-lg font-semibold text-paper-heading">
-              Категории
-            </h2>
-            <CategoryTreeSidebar
-              tree={categoryTree}
-              currentHandle={collection}
-            />
+            <Reveal variant="left">
+              <h2 className="mb-3 text-sm font-semibold text-paper-heading sm:mb-4 sm:text-lg">
+                Категории
+              </h2>
+              <CategoryTreeSidebar
+                tree={categoryTree}
+                currentHandle={collection}
+              />
+            </Reveal>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <div className="min-h-screen flex-1">
-          <Breadcrumb path={breadcrumbPath} />
+        {/* Main Content — products on the right */}
+        <div className="min-w-0 flex-1">
+          <Reveal variant="fade">
+            <Breadcrumb path={breadcrumbPath} />
+          </Reveal>
 
-          <div className="mb-8">
+          <Reveal className="mb-8" delay={80}>
             <h1 className="font-heading text-3xl font-bold text-paper-heading">
               {currentCollection?.title || "Всички продукти"}
             </h1>
@@ -126,7 +140,7 @@ export default async function ProductsPage({
                 />
               </div>
             </div>
-          </div>
+          </Reveal>
 
           {products.length === 0 ? (
             <p className="py-3 text-lg text-paper-text">
@@ -137,6 +151,7 @@ export default async function ProductsPage({
               <ProductGridItems products={products} />
             </Grid>
           )}
+        </div>
         </div>
       </div>
       <Footer />
