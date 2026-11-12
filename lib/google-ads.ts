@@ -1,4 +1,5 @@
 import {
+  GA_MEASUREMENT_ID,
   GOOGLE_ADS_ID,
   GOOGLE_ADS_LEAD_CONVERSION_SEND_TO,
   GOOGLE_ADS_PURCHASE_CONVERSION_SEND_TO,
@@ -39,7 +40,7 @@ export function reportGoogleAdsLeadConversion() {
   });
 
   // GA4 lead event so the inquiry is visible in Analytics too.
-  window.gtag!("event", "generate_lead");
+  window.gtag!("event", "generate_lead", { send_to: GA_MEASUREMENT_ID });
 }
 
 /**
@@ -83,9 +84,18 @@ export function reportGoogleAdsPurchaseConversion(params: {
   // GA4 ecommerce event (same dedup as above). Sent to all configured tags;
   // the Ads "conversion" above is the single Ads source of truth.
   window.gtag!("event", "purchase", {
+    send_to: GA_MEASUREMENT_ID,
     transaction_id: transactionId,
     value,
     currency: params.currency || "EUR",
+    items: [
+      {
+        item_id: "paperok-order",
+        item_name: "PaperOK order",
+        price: value,
+        quantity: 1,
+      },
+    ],
   });
 
   try {
