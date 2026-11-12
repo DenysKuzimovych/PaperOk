@@ -247,6 +247,22 @@ export default function Footer() {
 
             </li>
 
+            <li>
+
+              <Link
+
+                href="/blog/vrashtane-i-reklamacii"
+
+                className="text-paper-text transition-colors hover:text-paper-green"
+
+              >
+
+                Връщане и рекламации
+
+              </Link>
+
+            </li>
+
           </ul>
 
         </div>

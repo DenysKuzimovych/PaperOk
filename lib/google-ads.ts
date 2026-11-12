@@ -37,6 +37,9 @@ export function reportGoogleAdsLeadConversion() {
   window.gtag!("event", "conversion", {
     send_to: GOOGLE_ADS_LEAD_CONVERSION_SEND_TO,
   });
+
+  // GA4 lead event so the inquiry is visible in Analytics too.
+  window.gtag!("event", "generate_lead");
 }
 
 /**
@@ -75,6 +78,14 @@ export function reportGoogleAdsPurchaseConversion(params: {
     value,
     currency: params.currency || "EUR",
     transaction_id: transactionId,
+  });
+
+  // GA4 ecommerce event (same dedup as above). Sent to all configured tags;
+  // the Ads "conversion" above is the single Ads source of truth.
+  window.gtag!("event", "purchase", {
+    transaction_id: transactionId,
+    value,
+    currency: params.currency || "EUR",
   });
 
   try {
