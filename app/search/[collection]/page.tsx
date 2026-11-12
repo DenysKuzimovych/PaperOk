@@ -16,9 +16,22 @@ export async function generateMetadata(props: {
 
   if (!collection) return notFound();
 
+  const products = await getCollectionProducts(params.collection);
+  const rawDescription = collection.description?.trim();
+  const description = rawDescription
+    ? rawDescription.length > 155
+      ? `${rawDescription.slice(0, 152).trimEnd()}...`
+      : rawDescription
+    : `Продукти от ${collection.title}`;
+
   return {
     title: collection.title,
-    description: `Продукти от ${collection.title}`,
+    description,
+    alternates: {
+      canonical: `/search/${collection.handle}`,
+    },
+    // Empty categories should not be indexed until products are added.
+    robots: products.length === 0 ? { index: false, follow: true } : undefined,
   };
 }
 
