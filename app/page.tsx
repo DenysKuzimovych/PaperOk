@@ -7,6 +7,7 @@ import { FeaturedProducts } from "components/home/featured-products";
 import { Hero } from "components/home/hero";
 import { HowItWorks } from "components/home/how-it-works";
 import { Testimonials } from "components/home/testimonials";
+import { CustomerReviews } from "components/home/customer-reviews";
 import { TrustedCompanies } from "components/home/trusted-companies";
 import { WhyPaperOK } from "components/home/why-paperok";
 import { SITE_TAGLINE, LOGO_WITH_BACKGROUND, LOGO_WITH_BACKGROUND_SIZE } from "lib/constants";
@@ -61,6 +62,9 @@ export default function HomePage() {
       </Suspense>
       <WhyPaperOK />
       <Testimonials />
+      <Suspense fallback={null}>
+        <CustomerReviews />
+      </Suspense>
       <AboutUs />
       <TrustedCompanies />
       <FAQ />
