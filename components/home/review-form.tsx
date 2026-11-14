@@ -180,6 +180,20 @@ export function ReviewForm() {
       >
         {submitting ? "Изпращане…" : "Изпрати отзив"}
       </button>
+
+      <p className="mt-3 text-xs text-paper-muted">
+        Изпращайки отзива, се съгласявате предоставените данни (име и текст на
+        отзива) да бъдат съхранявани и показвани на сайта съгласно нашата{" "}
+        <a
+          href="/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-paper-green underline"
+        >
+          Политика за поверителност
+        </a>
+        .
+      </p>
     </form>
   );
 }
