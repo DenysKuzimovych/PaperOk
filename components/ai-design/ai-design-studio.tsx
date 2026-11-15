@@ -16,6 +16,7 @@ import {
 import { AiPromptTips } from "components/ai-design/ai-prompt-tips";
 import { AiStylePicker } from "components/ai-design/ai-style-picker";
 import type { AiCartMeta, AiDesignVariant } from "lib/ai-design/types";
+import { reportAddToCart } from "lib/ga-ecommerce";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -337,6 +338,12 @@ export function AiDesignStudio() {
       formatId,
       withFrame: supportsFrame ? withFrame : false,
       meta,
+    });
+    reportAddToCart({
+      item_id: selectedVariant.id,
+      item_name: title,
+      price: unitPrice,
+      quantity: 1,
     });
     toast.success("Добавено в количката");
     if (canStartNewDesign) {

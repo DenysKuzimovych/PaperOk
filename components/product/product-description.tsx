@@ -3,6 +3,7 @@ import SalePrice from "components/sale-price";
 import { getCatalogFromPrice } from "lib/quantity-pricing";
 import { Product } from "lib/types";
 import { ProductTrustBadges } from "./product-trust-badges";
+import { TrackViewItem } from "./track-view-item";
 
 export function ProductDescription({ product }: { product: Product }) {
   const hasVariants = (product.variants || []).some((v) => v.enabled);
@@ -11,6 +12,7 @@ export function ProductDescription({ product }: { product: Product }) {
 
   return (
     <>
+      <TrackViewItem id={product.id} name={product.title} price={fromPrice} />
       <div className="mb-6 flex flex-col border-b pb-6">
         <h1 className="mb-4 text-5xl font-medium">{product.title}</h1>
 

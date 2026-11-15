@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "components/cart/cart-context";
+import { reportBeginCheckout } from "lib/ga-ecommerce";
 import Price from "components/price";
 import LoadingDots from "components/loading-dots";
 import { CARD_PAYMENTS_ENABLED } from "lib/constants";
@@ -41,6 +42,24 @@ export default function CheckoutPage() {
     null,
   );
   const idempotencyKeyRef = useRef(generateIdempotencyKey());
+  const beginCheckoutFiredRef = useRef(false);
+
+  // GA4 begin_checkout — fire once when the checkout loads with a non-empty cart.
+  useEffect(() => {
+    if (beginCheckoutFiredRef.current) return;
+    const items = cart?.items || [];
+    if (items.length === 0) return;
+    beginCheckoutFiredRef.current = true;
+    reportBeginCheckout(
+      items.map((item) => ({
+        item_id: item.variantId || item.id,
+        item_name: item.product.title,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    );
+  }, [cart]);
+
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_email: "",
