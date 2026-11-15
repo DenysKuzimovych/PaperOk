@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { addItem } from "components/cart/actions";
+import { reportAddToCart } from "lib/ga-ecommerce";
 import { Product, ProductSizeVariant } from "lib/types";
 import { useActionState } from "react";
 import { useCart } from "./cart-context";
@@ -301,6 +302,12 @@ export function AddToCart({ product }: { product: Product }) {
               return;
             setButtonState("adding");
             addCartItem(variantData, product, quantity);
+            reportAddToCart({
+              item_id: variantData.id,
+              item_name: variantData.title,
+              price: displayPrice,
+              quantity,
+            });
             await formAction({
               productId: product.id,
               variantId: variantData.id,
