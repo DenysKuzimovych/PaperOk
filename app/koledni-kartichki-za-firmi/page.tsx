@@ -1,4 +1,5 @@
 import Footer from "components/layout/footer";
+import { Testimonials } from "components/home/testimonials";
 import { Reveal } from "components/ui/reveal";
 import { PaperTexture } from "components/ui/paper-texture";
 import { BusinessInquiryForm } from "components/za-biznesa/business-inquiry-form";
@@ -329,6 +330,9 @@ export default function KoledniKartichkiZaFirmiPage() {
           </p>
         </div>
       </section>
+
+      {/* Отзиви – реални публикации на клиенти */}
+      <Testimonials />
 
       {/* Запитване */}
       <section

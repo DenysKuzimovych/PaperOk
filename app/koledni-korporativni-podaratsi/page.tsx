@@ -1,4 +1,5 @@
 import Footer from "components/layout/footer";
+import { Testimonials } from "components/home/testimonials";
 import { Reveal } from "components/ui/reveal";
 import { PaperTexture } from "components/ui/paper-texture";
 import { BusinessInquiryForm } from "components/za-biznesa/business-inquiry-form";
@@ -67,18 +68,6 @@ const products: { title: string; icon: IconComponent }[] = [
   { title: "Персонализиран дизайн с AI", icon: SparklesIcon },
 ];
 
-const testimonials = [
-  {
-    name: "Анна В.",
-    company: "HR Manager, FinCorp",
-    text: "Коледните комплекти за служителите бяха хит. PaperOK ни помогнаха с дизайна и доставката навреме.",
-  },
-  {
-    name: "Иван М.",
-    company: "Tech Solutions EOOD",
-    text: "Поръчахме 300 благодарствени картички за клиенти. Реакцията беше невероятна — всеки пита откъде са.",
-  },
-];
 
 export default function KoledniKorporativniPodaratsiPage() {
   return (
@@ -213,53 +202,8 @@ export default function KoledniKorporativniPodaratsiPage() {
       {/* Размери и примерни цени */}
       <BusinessSamplePrices />
 
-      {/* Отзиви */}
-      <section className="relative overflow-hidden bg-paper-accent-bg py-16 md:py-20">
-        <PaperTexture
-          src={PAPER_BACKGROUNDS.fibers}
-          overlay={PAPER_OVERLAYS.accent}
-          sizes="100vw"
-          quality={85}
-        />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <Reveal>
-            <h2 className="font-heading mb-10 text-center text-3xl font-bold text-paper-heading">
-              Какво казват бизнес клиентите
-            </h2>
-          </Reveal>
-          <div className={`${BUSINESS_GRID_CLASS} gap-6 md:grid-cols-2`}>
-            {testimonials.map((t, index) => (
-              <Reveal
-                key={t.name}
-                delay={index * 80}
-                variant="up"
-                className={BUSINESS_GRID_REVEAL_CLASS}
-              >
-                <BusinessCard
-                  textureSrc={CARD_BG}
-                  textureSizes="(min-width: 768px) 50vw, 100vw"
-                >
-                  <blockquote className="flex h-full flex-col">
-                    <p className="flex-1 text-sm leading-relaxed text-paper-text">
-                      &ldquo;{t.text}&rdquo;
-                    </p>
-                    <footer className="mt-4 border-t border-paper-border pt-4">
-                      <cite className="not-italic">
-                        <span className="font-semibold text-paper-heading">
-                          {t.name}
-                        </span>
-                        <span className="block text-xs text-paper-muted">
-                          {t.company}
-                        </span>
-                      </cite>
-                    </footer>
-                  </blockquote>
-                </BusinessCard>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Отзиви – реални публикации на клиенти */}
+      <Testimonials />
 
       {/* Форма за запитване */}
       <section
