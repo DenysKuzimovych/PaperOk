@@ -97,6 +97,15 @@ const testimonials = [
 export default function ZaBiznesaPage() {
   return (
     <>
+      {/* Коледен банер – сезонен */}
+      <a
+        href="/koledni-kartichki-za-firmi"
+        className="block bg-paper-green px-4 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-paper-green-hover sm:text-base"
+      >
+        🎄 Коледни картички с Вашето лого – 10 дизайна, от 100 бр. Поръчки до
+        12 декември <span className="underline underline-offset-2">Вижте →</span>
+      </a>
+
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-paper-accent-bg via-paper-bg to-paper-section py-16 md:py-24">
         <PaperTexture
