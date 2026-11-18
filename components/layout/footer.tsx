@@ -263,6 +263,22 @@ export default function Footer() {
 
             </li>
 
+            <li>
+
+              <Link
+
+                href="/otkaz-ot-dogovora"
+
+                className="text-paper-text transition-colors hover:text-paper-green"
+
+              >
+
+                Откажете се от договора тук
+
+              </Link>
+
+            </li>
+
           </ul>
 
         </div>

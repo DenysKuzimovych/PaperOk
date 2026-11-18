@@ -139,6 +139,17 @@ export default async function CheckoutSuccessPage({
           <p className="mb-8 text-lg text-paper-text">
             Благодарим ви за поръчката. Ще получите потвърждение по имейл скоро.
           </p>
+          <p className="mb-8 text-sm text-paper-muted">
+            Можете да се откажете от поръчката в 14-дневен срок от получаването
+            ѝ (с изключение на персонализираните артикули):{" "}
+            <Link
+              href="/otkaz-ot-dogovora"
+              className="text-paper-green underline"
+            >
+              откажете се от договора тук
+            </Link>
+            .
+          </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/"

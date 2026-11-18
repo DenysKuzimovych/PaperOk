@@ -329,3 +329,138 @@ function escapeHtml(text: string): string {
   };
   return text.replace(/[&<>"']/g, (m) => map[m] || m);
 }
+
+export interface WithdrawalData {
+  /** Server-side reference, e.g. "OTK-20261118-1A2B". */
+  reference: string;
+  customerName: string;
+  customerEmail: string;
+  orderNumber: string;
+  /** "all" or a free-text list of the items being returned. */
+  items: string;
+  reason?: string;
+  /** Human-readable submission time in Europe/Sofia. */
+  submittedAt: string;
+}
+
+function withdrawalBodyHtml(data: WithdrawalData): string {
+  return `
+    <table cellpadding="6" style="border-collapse:collapse;font-size:14px">
+      <tr><td><strong>Номер на заявлението:</strong></td><td>${escapeHtml(data.reference)}</td></tr>
+      <tr><td><strong>Подадено на:</strong></td><td>${escapeHtml(data.submittedAt)} (българско време)</td></tr>
+      <tr><td><strong>Име:</strong></td><td>${escapeHtml(data.customerName)}</td></tr>
+      <tr><td><strong>Имейл:</strong></td><td>${escapeHtml(data.customerEmail)}</td></tr>
+      <tr><td><strong>Номер на поръчката:</strong></td><td>${escapeHtml(data.orderNumber)}</td></tr>
+      <tr><td><strong>Артикули:</strong></td><td>${escapeHtml(data.items).replace(/\n/g, "<br>")}</td></tr>
+      ${data.reason ? `<tr><td><strong>Причина (по желание):</strong></td><td>${escapeHtml(data.reason).replace(/\n/g, "<br>")}</td></tr>` : ""}
+    </table>`;
+}
+
+function withdrawalBodyText(data: WithdrawalData): string {
+  return `Номер на заявлението: ${data.reference}
+Подадено на: ${data.submittedAt} (българско време)
+Име: ${data.customerName}
+Имейл: ${data.customerEmail}
+Номер на поръчката: ${data.orderNumber}
+Артикули: ${data.items}${data.reason ? `\nПричина (по желание): ${data.reason}` : ""}`;
+}
+
+/**
+ * Confirmation of receipt of an online withdrawal statement (чл. 52а, ал. 5 ЗЗП),
+ * sent to the consumer on a durable medium. Never throws.
+ */
+export async function sendWithdrawalConfirmationToCustomer(
+  data: WithdrawalData,
+): Promise<SendResult> {
+  try {
+    const { error } = await ensureResend().emails.send({
+      from: fromAddress,
+      to: [data.customerEmail],
+      replyTo: CONTACT_EMAIL,
+      subject: `Потвърждение за получен отказ от договора – ${data.reference}`,
+      html: `
+        ${emailLogoHtml()}
+        <h2>Получихме Вашето заявление за отказ от договора</h2>
+        <p>Здравейте, ${escapeHtml(data.customerName)}!</p>
+        <p>Потвърждаваме, че на <strong>${escapeHtml(data.submittedAt)}</strong> (българско време) получихме Вашето заявление за отказ от договора със следното съдържание:</p>
+        ${withdrawalBodyHtml(data)}
+        <p>Моля, изпратете артикулите обратно до 14 дни от днес. Ще се свържем с Вас с указания за връщането. Сумата ще Ви бъде възстановена до 14 дни от получаване на заявлението, като можем да изчакаме, докато получим артикулите или доказателство, че са изпратени.</p>
+        <p>Персонализираните артикули, изработени по Ваш дизайн или поръчка, не подлежат на връщане (чл. 57, т. 3 ЗЗП).</p>
+        <p>Ако имате въпроси, отговорете на този имейл.</p>
+        <p>Поздрави,<br>Екипът на ${siteName}</p>
+      `,
+      text: `Получихме Вашето заявление за отказ от договора
+
+Здравейте, ${data.customerName}!
+
+Потвърждаваме, че на ${data.submittedAt} (българско време) получихме Вашето заявление за отказ от договора със следното съдържание:
+
+${withdrawalBodyText(data)}
+
+Моля, изпратете артикулите обратно до 14 дни от днес. Ще се свържем с Вас с указания за връщането. Сумата ще Ви бъде възстановена до 14 дни от получаване на заявлението, като можем да изчакаме, докато получим артикулите или доказателство, че са изпратени.
+
+Персонализираните артикули, изработени по Ваш дизайн или поръчка, не подлежат на връщане (чл. 57, т. 3 ЗЗП).
+
+Ако имате въпроси, отговорете на този имейл.
+
+Поздрави,
+Екипът на ${siteName}`,
+    });
+
+    if (error) {
+      console.warn("Withdrawal confirmation not sent:", error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error: any) {
+    const message = error?.message || "Failed to send withdrawal confirmation";
+    console.warn("Withdrawal confirmation not sent:", message);
+    return { success: false, error: message };
+  }
+}
+
+/** Internal notification + proof copy for the shop. Never throws. */
+export async function sendWithdrawalNotification(
+  data: WithdrawalData,
+  customerEmailSent: boolean,
+): Promise<SendResult> {
+  try {
+    const { error } = await ensureResend().emails.send({
+      from: fromAddress,
+      to: [notificationTo],
+      replyTo: data.customerEmail,
+      subject: `Отказ от договора ${data.reference} – поръчка ${data.orderNumber}`,
+      html: `
+        ${emailLogoHtml()}
+        <h2>Ново заявление за отказ от договора</h2>
+        ${withdrawalBodyHtml(data)}
+        <p><strong>Потвърждение до клиента от сайта:</strong> ${
+          customerEmailSent
+            ? "изпратено автоматично"
+            : "НЕ е изпратено – изпратете потвърждение на клиента до края на работния ден (чл. 52а, ал. 5 ЗЗП)"
+        }</p>
+        <hr>
+        <p><small>Автоматично известие от ${siteName} – ${siteUrl}/otkaz-ot-dogovora</small></p>
+      `,
+      text: `Ново заявление за отказ от договора
+
+${withdrawalBodyText(data)}
+
+Потвърждение до клиента от сайта: ${
+        customerEmailSent
+          ? "изпратено автоматично"
+          : "НЕ е изпратено – изпратете потвърждение на клиента до края на работния ден (чл. 52а, ал. 5 ЗЗП)"
+      }`,
+    });
+
+    if (error) {
+      console.warn("Withdrawal notification not sent:", error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error: any) {
+    const message = error?.message || "Failed to send withdrawal notification";
+    console.warn("Withdrawal notification not sent:", message);
+    return { success: false, error: message };
+  }
+}
