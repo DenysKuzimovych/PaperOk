@@ -1,3 +1,4 @@
+import { AiDesignAfterOrder } from "components/ai-design/ai-design-after-order";
 import { AiDesignBanner } from "components/ai-design/ai-design-banner";
 import { AiDesignStudio } from "components/ai-design/ai-design-studio";
 import {
@@ -76,6 +77,7 @@ export default function AiDesignPage() {
       <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
         <AiDesignBanner />
         <AiDesignStudio />
+        <AiDesignAfterOrder />
       </div>
     </div>
   );
