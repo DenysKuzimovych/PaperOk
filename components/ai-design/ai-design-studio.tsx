@@ -16,7 +16,7 @@ import {
 import { AiPromptTips } from "components/ai-design/ai-prompt-tips";
 import { AiStylePicker } from "components/ai-design/ai-style-picker";
 import type { AiCartMeta, AiDesignVariant } from "lib/ai-design/types";
-import { reportAddToCart } from "lib/ga-ecommerce";
+import { reportAddToCart, reportAiDesignGenerate } from "lib/ga-ecommerce";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -255,6 +255,11 @@ export function AiDesignStudio() {
         setSelectedVariantId(data.selectedVariantId || null);
         setFaceSide("front");
         shouldScrollToPreview.current = true;
+        reportAiDesignGenerate({
+          formatId,
+          attempt: Number(data.attemptsUsed) || 1,
+          styles: Array.isArray(styles) ? styles : [],
+        });
         if (data.warning) {
           toast.message(data.warning, { duration: 8000 });
         }

@@ -91,3 +91,22 @@ export function reportAddToCart(item: GaItem) {
 export function reportBeginCheckout(items: GaItem[]) {
   emit("begin_checkout", items);
 }
+
+/**
+ * AI-design studio: a design was generated. `attempt` is the attempt number
+ * within the current design (1..AI_MAX_ATTEMPTS), so GA shows how many
+ * visitors try again before adding to cart.
+ */
+export function reportAiDesignGenerate(params: {
+  formatId: string;
+  attempt: number;
+  styles: string[];
+}) {
+  if (!ensureGtag()) return;
+  window.gtag!("event", "ai_design_generate", {
+    send_to: GA_MEASUREMENT_ID,
+    format: params.formatId,
+    attempt: params.attempt,
+    styles: params.styles.join(","),
+  });
+}

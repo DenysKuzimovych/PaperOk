@@ -81,12 +81,27 @@ export function AiDesignBanner() {
           </h1>
 
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/85 sm:text-[0.95rem]">
-            Картичка или постер, създадени по твоя идея.
+            Картичка или постер по твоя идея, отпечатани в София върху ръчно
+            изработена хартия.
           </p>
           <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-white/70 sm:text-sm">
             До {AI_MAX_ATTEMPTS} варианта за всеки дизайн и до {AI_MAX_DESIGNS}{" "}
             отделни дизайна в рамките на една сесия.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <a
+              href="#studio"
+              className="inline-flex min-h-11 items-center rounded-full bg-[#F6F1E4] px-5 text-sm font-semibold text-[#2F3A24] hover:bg-white"
+            >
+              Започни дизайна
+            </a>
+            <a
+              href="#primeri"
+              className="inline-flex min-h-11 items-center rounded-full border border-white/60 px-5 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              Виж примери
+            </a>
+          </div>
         </div>
 
         <div className="relative flex w-[36%] min-w-[7.5rem] max-w-[13rem] shrink-0 items-end justify-center sm:w-[40%] sm:min-w-[10rem] sm:max-w-[15rem] lg:max-w-[16.5rem]">
