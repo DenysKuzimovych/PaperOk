@@ -32,57 +32,63 @@ function formatPrice(value: number): string {
 // Google product taxonomy mapping (full paths from Google's official taxonomy).
 // Without an explicit category Google guesses and has been classifying
 // notebooks/calendars/cards as "Books", which hurts free-listing targeting.
-// Matched by title keywords; unmatched products omit the tags (Google decides).
+// Matched against the title (Cyrillic keywords) AND the category handle
+// (Latin slugs such as za-neya, blagodarya), because many greeting cards are
+// titled only by their message ("На мама", "Разцъфни"). Note: JS \b does not
+// work with Cyrillic, so patterns use plain substrings. Unmatched products
+// omit the tags (Google decides, as before).
 const GOOGLE_CATEGORY_RULES: {
   pattern: RegExp;
   category: string;
   productType: string;
 }[] = [
   {
-    pattern: /картичк|покана/i,
-    category:
-      "Arts & Entertainment > Party & Celebration > Gift Giving > Greeting & Note Cards",
-    productType: "Картички от семенна хартия",
-  },
-  {
-    pattern: /тефтер|бележник|блокче|тетрадк/i,
+    pattern: /тефтер|бележник|блокче|тетрадк|tefter/i,
     category:
       "Office Supplies > General Office Supplies > Paper Products > Notebooks & Notepads",
     productType: "Еко тефтери и бележници",
   },
   {
-    pattern: /календар/i,
+    pattern: /календар|kalendar/i,
     category:
       "Office Supplies > General Office Supplies > Calendars, Organizers & Planners",
     productType: "Еко календари",
   },
   {
-    pattern: /книгоразделител/i,
+    pattern: /книгоразделител|knigorazdel/i,
     category: "Office Supplies > Book Accessories > Book Marks",
     productType: "Книгоразделители от семенна хартия",
   },
   {
-    pattern: /плик(?:ове)?\b/i,
+    pattern: /плик|plikove/i,
     category:
       "Office Supplies > General Office Supplies > Paper Products > Envelopes",
-    productType: "Пликове",
+    productType: "Пликове от семенна хартия",
   },
   {
-    pattern: /визитк/i,
+    pattern: /визитк|vizitk/i,
     category:
       "Office Supplies > General Office Supplies > Paper Products > Business Cards",
     productType: "Визитки от семенна хартия",
   },
   {
-    pattern: /хартия|листове|листа/i,
+    pattern:
+      /картичк|покана|kartichk|koleda|pozhelaniya|blagodarya|za-nego|za-neya/i,
+    category:
+      "Arts & Entertainment > Party & Celebration > Gift Giving > Greeting & Note Cards",
+    productType: "Картички от семенна хартия",
+  },
+  {
+    pattern: /хартия|листове|hartia/i,
     category:
       "Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Art & Crafting Materials > Crafting Paper",
     productType: "Семенна хартия – листове",
   },
 ];
 
-function googleCategoryTags(title: string): string {
-  const rule = GOOGLE_CATEGORY_RULES.find((r) => r.pattern.test(title));
+function googleCategoryTags(title: string, categoryHandle?: string): string {
+  const haystack = `${categoryHandle || ""} ${title}`;
+  const rule = GOOGLE_CATEGORY_RULES.find((r) => r.pattern.test(haystack));
   if (!rule) return "";
   return `      <g:google_product_category>${escapeXml(rule.category)}</g:google_product_category>
       <g:product_type>${escapeXml(rule.productType)}</g:product_type>\n`;
@@ -128,7 +134,7 @@ export async function GET() {
       <g:image_link>${escapeXml(product.featuredImage.url)}</g:image_link>
 ${additionalImages ? `${additionalImages}\n` : ""}      <g:availability>in_stock</g:availability>
 ${salePrice}
-${googleCategoryTags(product.title)}      <g:brand>PaperOK</g:brand>
+${googleCategoryTags(product.title, product.category)}      <g:brand>PaperOK</g:brand>
       <g:condition>new</g:condition>
       <g:identifier_exists>no</g:identifier_exists>
     </item>`;
