@@ -1,4 +1,5 @@
-import { getProducts } from "lib/supabase/products";
+import { getCollections, getProducts } from "lib/supabase/products";
+import { getRootOfCategory, type FlatCategory } from "lib/category-tree";
 import { baseUrl } from "lib/utils";
 
 // Google Merchant Center product feed (RSS 2.0 + g: namespace).
@@ -86,8 +87,12 @@ const GOOGLE_CATEGORY_RULES: {
   },
 ];
 
-function googleCategoryTags(title: string, categoryHandle?: string): string {
-  const haystack = `${categoryHandle || ""} ${title}`;
+function googleCategoryTags(
+  title: string,
+  categoryHandle: string | undefined,
+  rootHandle: string | undefined,
+): string {
+  const haystack = `${categoryHandle || ""} ${rootHandle || ""} ${title}`;
   const rule = GOOGLE_CATEGORY_RULES.find((r) => r.pattern.test(haystack));
   if (!rule) return "";
   return `      <g:google_product_category>${escapeXml(rule.category)}</g:google_product_category>
@@ -96,6 +101,21 @@ function googleCategoryTags(title: string, categoryHandle?: string): string {
 
 export async function GET() {
   const products = await getProducts({});
+  const collections = await getCollections();
+  const flatCategories: FlatCategory[] = collections.map((c) => ({
+    id: c.id,
+    handle: c.handle,
+    title: c.title,
+    position: c.position ?? 0,
+    parent_id: c.parentId ?? null,
+  }));
+  const byHandle = new Map(flatCategories.map((c) => [c.handle, c]));
+  const rootHandleFor = (handle: string | undefined): string | undefined => {
+    if (!handle) return undefined;
+    const node = byHandle.get(handle);
+    if (!node) return undefined;
+    return getRootOfCategory(flatCategories, node.id)?.handle;
+  };
 
   const items = products
     .filter(
@@ -134,7 +154,7 @@ export async function GET() {
       <g:image_link>${escapeXml(product.featuredImage.url)}</g:image_link>
 ${additionalImages ? `${additionalImages}\n` : ""}      <g:availability>in_stock</g:availability>
 ${salePrice}
-${googleCategoryTags(product.title, product.category)}      <g:brand>PaperOK</g:brand>
+${googleCategoryTags(product.title, product.category, rootHandleFor(product.category))}      <g:brand>PaperOK</g:brand>
       <g:condition>new</g:condition>
       <g:identifier_exists>no</g:identifier_exists>
     </item>`;
