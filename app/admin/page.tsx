@@ -78,7 +78,7 @@ export default async function AdminDashboard({
   const prevMonth = monthly[monthly.length - 2];
   const currMonth = monthly[monthly.length - 1];
   const monthGrowth =
-    prevMonth && prevMonth.revenue > 0
+    prevMonth && currMonth && prevMonth.revenue > 0
       ? ((currMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100
       : null;
 
