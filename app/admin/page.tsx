@@ -59,7 +59,7 @@ export default async function AdminDashboard({
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     monthly.push({
       key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: `${MONTH_LABELS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`,
+      label: `${MONTH_LABELS[d.getMonth()] ?? ""} '${String(d.getFullYear()).slice(2)}`,
       revenue: 0,
       count: 0,
     });
@@ -127,7 +127,8 @@ export default async function AdminDashboard({
   for (const o of activeOrders) {
     const t = new Date(o.created_at);
     if (t.getTime() < cutoff90) continue;
-    weekdayCounts[(t.getDay() + 6) % 7] += 1;
+    const wd = (t.getDay() + 6) % 7;
+    weekdayCounts[wd] = (weekdayCounts[wd] ?? 0) + 1;
   }
   const maxWeekday = Math.max(...weekdayCounts, 1);
 
@@ -444,20 +445,23 @@ export default async function AdminDashboard({
             последните 90 дни
           </p>
           <div className="flex h-32 items-end gap-2">
-            {weekdayCounts.map((count, i) => (
-              <div key={DAY_LABELS[i]} className="flex flex-1 flex-col items-center gap-1">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {count}
-                </span>
-                <div
-                  className="w-full rounded-t-md bg-indigo-500/80 dark:bg-indigo-500/60"
-                  style={{ height: `${Math.max((count / maxWeekday) * 100, 2)}%` }}
-                />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {DAY_LABELS[i]}
-                </span>
-              </div>
-            ))}
+            {weekdayCounts.map((count, i) => {
+              const label = DAY_LABELS[i] ?? String(i);
+              return (
+                <div key={label} className="flex flex-1 flex-col items-center gap-1">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {count}
+                  </span>
+                  <div
+                    className="w-full rounded-t-md bg-indigo-500/80 dark:bg-indigo-500/60"
+                    style={{ height: `${Math.max((count / maxWeekday) * 100, 2)}%` }}
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
