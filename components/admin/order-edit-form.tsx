@@ -66,7 +66,6 @@ export function OrderEditForm({ order }: OrderEditFormProps) {
       });
       toast.success("Поръчката е обновена успешно!");
       router.refresh();
-      router.push("/admin/orders");
     } catch (error) {
       console.error("Error updating order:", error);
       toast.error("Грешка при обновяване на поръчката");

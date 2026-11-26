@@ -310,6 +310,11 @@ export default async function OrderDetailPage({
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">
                         {product.name}
+                        {product.variant_name ? (
+                          <span className="ml-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                            {product.variant_name}
+                          </span>
+                        ) : null}
                         {ai?.kind === "ai_design" && (
                           <span className="ml-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                             AI дизайн

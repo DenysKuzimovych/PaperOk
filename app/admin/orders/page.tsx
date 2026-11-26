@@ -62,31 +62,31 @@ export default async function AdminOrdersPage({
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Клиент
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Продукти
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Обща Сума
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Плащане
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Статус плащане
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Статус поръчка
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Дата
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="sticky right-0 z-10 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.2)]">
                   Действия
                 </th>
               </tr>
@@ -96,7 +96,7 @@ export default async function AdminOrdersPage({
                 <tr>
                   <td
                     colSpan={9}
-                    className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                    className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
                     Няма поръчки за избраните филтри
                   </td>
@@ -112,11 +112,16 @@ export default async function AdminOrdersPage({
                   );
 
                   return (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-white">
-                        {order.id.substring(0, 8)}...
+                    <tr key={order.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-mono">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+                        >
+                          {order.id.substring(0, 8)}...
+                        </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <div>
                           <div className="font-medium">{order.customer_name}</div>
                           <div className="text-gray-500 dark:text-gray-400 text-xs">
@@ -129,7 +134,7 @@ export default async function AdminOrdersPage({
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         <div>
                           <div className="font-medium">{totalItems} артикула</div>
                           <div className="text-gray-500 dark:text-gray-400 text-xs">
@@ -137,30 +142,30 @@ export default async function AdminOrdersPage({
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         €{Number(order.total_price).toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {paymentMethodLabel(order.payment_method)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${paymentStatusBadgeClass(order.payment_status)}`}
                         >
                           {paymentStatusLabel(order.payment_status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${orderStatusBadgeClass(order.status)}`}
                         >
                           {orderStatusLabel(order.status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDateTimeBg(order.created_at)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="sticky right-0 z-10 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 px-4 py-4 whitespace-nowrap text-sm font-medium shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.2)]">
                         <Link
                           href={`/admin/orders/${order.id}`}
                           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
