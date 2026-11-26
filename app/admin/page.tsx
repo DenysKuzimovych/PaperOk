@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getAllOrders, isPaidRevenueOrder } from "lib/supabase/orders";
 import { getAllContactInquiries } from "lib/supabase/admin-contact-inquiries";
+import { getVisitorStats } from "lib/ga-visitors";
 import {
   orderInPeriod,
   resolveRevenuePeriod,
@@ -20,9 +21,10 @@ export default async function AdminDashboard({
   const params = await searchParams;
   const range = resolveRevenuePeriod(params);
 
-  const [orders, inquiries] = await Promise.all([
+  const [orders, inquiries, visitorStats] = await Promise.all([
     getAllOrders(),
     getAllContactInquiries().catch(() => []),
+    getVisitorStats(),
   ]);
 
   const paidInPeriod = orders.filter(
@@ -129,6 +131,15 @@ export default async function AdminDashboard({
   }
   const maxWeekday = Math.max(...weekdayCounts, 1);
 
+  const cutoff30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const orders30 = activeOrders.filter(
+    (o) => new Date(o.created_at).getTime() >= cutoff30,
+  ).length;
+  const conversion30 =
+    visitorStats && visitorStats.visitors30 > 0
+      ? (orders30 / visitorStats.visitors30) * 100
+      : null;
+
   // --- Top cities (Speedy site name, all orders) ---
   const cityCounts = new Map<string, number>();
   for (const o of activeOrders) {
@@ -217,6 +228,42 @@ export default async function AdminDashboard({
           </p>
         </div>
       </div>
+
+      {/* Visitors from Google Analytics */}
+      {visitorStats && (
+        <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Посетители · 7 дни
+            </h3>
+            <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+              {visitorStats.visitors7.toLocaleString("bg-BG")}
+            </p>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Посетители · 30 дни
+            </h3>
+            <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+              {visitorStats.visitors30.toLocaleString("bg-BG")}
+            </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {visitorStats.sessions30.toLocaleString("bg-BG")} сесии
+            </p>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Конверсия · 30 дни
+            </h3>
+            <p className="mt-2 text-3xl font-bold text-purple-600 dark:text-purple-400">
+              {conversion30 != null ? `${conversion30.toFixed(1)}%` : "—"}
+            </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {orders30} поръчки / {visitorStats.visitors30.toLocaleString("bg-BG")} посетители
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Period + paid extras */}
       <div className="mb-8 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
