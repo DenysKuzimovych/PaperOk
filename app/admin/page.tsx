@@ -105,6 +105,51 @@ export default async function AdminDashboard({
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
+  // --- Repeat customers (all non-canceled orders) ---
+  const activeOrders = orders.filter((o) => o.status !== "canceled");
+  const byEmail = new Map<string, number>();
+  for (const o of activeOrders) {
+    const email = String(o.customer_email || "").toLowerCase().trim();
+    if (!email) continue;
+    byEmail.set(email, (byEmail.get(email) || 0) + 1);
+  }
+  const uniqueCustomers = byEmail.size;
+  const repeatCustomers = [...byEmail.values()].filter((n) => n >= 2).length;
+  const repeatShare =
+    uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0;
+
+  // --- Orders by weekday, last 90 days ---
+  const DAY_LABELS = ["пн", "вт", "ср", "чт", "пт", "сб", "нд"];
+  const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+  const cutoff90 = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  for (const o of activeOrders) {
+    const t = new Date(o.created_at);
+    if (t.getTime() < cutoff90) continue;
+    weekdayCounts[(t.getDay() + 6) % 7] += 1;
+  }
+  const maxWeekday = Math.max(...weekdayCounts, 1);
+
+  // --- Top cities (Speedy site name, all orders) ---
+  const cityCounts = new Map<string, number>();
+  for (const o of activeOrders) {
+    const city = (o as any).shipping_site_name
+      ? String((o as any).shipping_site_name).trim()
+      : "";
+    if (!city) continue;
+    cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
+  }
+  const topCities = [...cityCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // --- Payment split for the selected period ---
+  const codOrders = paidInPeriod.filter(
+    (o) => o.payment_method === "cash_on_delivery",
+  );
+  const cardOrders = paidInPeriod.filter((o) => o.payment_method !== "cash_on_delivery");
+  const codRevenue = codOrders.reduce((s, o) => s + Number(o.total_price), 0);
+  const cardRevenue = cardOrders.reduce((s, o) => s + Number(o.total_price), 0);
+
   return (
     <div className="mx-auto max-w-7xl">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -291,6 +336,104 @@ export default async function AdminDashboard({
                   </div>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     €{p.revenue.toFixed(2)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+
+      {/* Analytics row 2: customers, weekdays, cities */}
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            Клиенти и плащания
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Повторни клиенти
+              </p>
+              <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                {repeatCustomers}
+                <span className="ml-2 text-sm font-semibold text-green-600 dark:text-green-400">
+                  {repeatShare.toFixed(0)}% от {uniqueCustomers} клиенти
+                </span>
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                клиенти с 2+ поръчки (всички поръчки)
+              </p>
+            </div>
+            <div className="border-t border-gray-100 pt-3 dark:border-gray-700">
+              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                Плащания · {range.label}
+              </p>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Наложен платеж
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {codOrders.length} · €{codRevenue.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700 dark:text-gray-300">Карта</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {cardOrders.length} · €{cardRevenue.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+            Поръчки по ден от седмицата
+          </h2>
+          <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+            последните 90 дни
+          </p>
+          <div className="flex h-32 items-end gap-2">
+            {weekdayCounts.map((count, i) => (
+              <div key={DAY_LABELS[i]} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {count}
+                </span>
+                <div
+                  className="w-full rounded-t-md bg-indigo-500/80 dark:bg-indigo-500/60"
+                  style={{ height: `${Math.max((count / maxWeekday) * 100, 2)}%` }}
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {DAY_LABELS[i]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            Топ населени места
+          </h2>
+          {topCities.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Няма данни от Speedy доставки
+            </p>
+          ) : (
+            <ol className="space-y-2">
+              {topCities.map(([city, count], i) => (
+                <li key={city} className="flex items-center gap-3 text-sm">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-gray-900 dark:text-white">
+                    {city}
+                  </span>
+                  <span className="font-medium text-gray-500 dark:text-gray-400">
+                    {count} пратки
                   </span>
                 </li>
               ))}
