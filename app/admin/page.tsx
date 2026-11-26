@@ -39,11 +39,71 @@ export default async function AdminDashboard({
   const stats = {
     totalOrders: orders.length,
     newOrders: orders.filter((o) => o.status === "new").length,
+    processingOrders: orders.filter((o) => o.status === "processing").length,
     newInquiries: inquiries.filter((i) => i.status === "new").length,
     revenue,
     paidCount,
     averageOrderValue,
   };
+
+  // --- Monthly revenue, last 6 months (paid orders only) ---
+  const MONTH_LABELS = [
+    "яну", "фев", "мар", "апр", "май", "юни",
+    "юли", "авг", "сеп", "окт", "ное", "дек",
+  ];
+  const now = new Date();
+  const monthly: { key: string; label: string; revenue: number; count: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthly.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: `${MONTH_LABELS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`,
+      revenue: 0,
+      count: 0,
+    });
+  }
+  for (const o of orders) {
+    if (!isPaidRevenueOrder(o)) continue;
+    const d = new Date(o.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const bucket = monthly.find((m) => m.key === key);
+    if (bucket) {
+      bucket.revenue += Number(o.total_price);
+      bucket.count += 1;
+    }
+  }
+  const maxMonthlyRevenue = Math.max(...monthly.map((m) => m.revenue), 1);
+  const prevMonth = monthly[monthly.length - 2];
+  const currMonth = monthly[monthly.length - 1];
+  const monthGrowth =
+    prevMonth && prevMonth.revenue > 0
+      ? ((currMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100
+      : null;
+
+  // --- Top products for the selected period (paid orders) ---
+  const productTotals = new Map<
+    string,
+    { name: string; variant: string | null; quantity: number; revenue: number }
+  >();
+  for (const o of paidInPeriod) {
+    const items = Array.isArray(o.products) ? o.products : [];
+    for (const p of items as any[]) {
+      const key = `${p.name}|${p.variant_name || ""}`;
+      const entry =
+        productTotals.get(key) || {
+          name: String(p.name || "—"),
+          variant: p.variant_name ? String(p.variant_name) : null,
+          quantity: 0,
+          revenue: 0,
+        };
+      entry.quantity += Number(p.quantity) || 0;
+      entry.revenue += (Number(p.price) || 0) * (Number(p.quantity) || 0);
+      productTotals.set(key, entry);
+    }
+  }
+  const topProducts = [...productTotals.values()]
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -60,7 +120,7 @@ export default async function AdminDashboard({
       </div>
 
       {/* Main KPIs */}
-      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Общо поръчки
@@ -76,6 +136,16 @@ export default async function AdminDashboard({
             </h3>
             <p className="mt-2 text-3xl font-bold text-indigo-600 dark:text-indigo-400">
               {stats.newOrders}
+            </p>
+          </Link>
+        </div>
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <Link href="/admin/orders?status=processing" className="block">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              За изпращане
+            </h3>
+            <p className="mt-2 text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {stats.processingOrders}
             </p>
           </Link>
         </div>
@@ -146,6 +216,86 @@ export default async function AdminDashboard({
               €{stats.averageOrderValue.toFixed(2)}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Analytics: monthly revenue + top products */}
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Приходи по месеци
+            </h2>
+            {monthGrowth != null && (
+              <span
+                className={`text-sm font-semibold ${monthGrowth >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+              >
+                {monthGrowth >= 0 ? "▲" : "▼"} {Math.abs(monthGrowth).toFixed(0)}%
+                <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">
+                  спрямо предходния месец
+                </span>
+              </span>
+            )}
+          </div>
+          <div className="flex h-44 items-end gap-3">
+            {monthly.map((m) => (
+              <div key={m.key} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  €{Math.round(m.revenue)}
+                </span>
+                <div
+                  className="w-full rounded-t-md bg-green-500/80 dark:bg-green-500/60"
+                  style={{
+                    height: `${Math.max((m.revenue / maxMonthlyRevenue) * 100, 2)}%`,
+                  }}
+                  title={`${m.label}: €${m.revenue.toFixed(2)} (${m.count} поръчки)`}
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {m.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            Само платени поръчки (карта „платено“ / наложен платеж при доставена)
+          </p>
+        </div>
+
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            Топ продукти · {range.label}
+          </h2>
+          {topProducts.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Няма платени поръчки за периода
+            </p>
+          ) : (
+            <ol className="space-y-3">
+              {topProducts.map((p, i) => (
+                <li key={`${p.name}-${p.variant}`} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                      {p.name}
+                      {p.variant ? (
+                        <span className="ml-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                          {p.variant}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {p.quantity} бр.
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    €{p.revenue.toFixed(2)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       </div>
 
