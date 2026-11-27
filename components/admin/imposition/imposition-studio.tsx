@@ -209,6 +209,7 @@ export function ImpositionStudio() {
   const [trimH, setTrimH] = useState(143);
   const [bleed, setBleed] = useState(2);
   const [sheetId, setSheetId] = useState<SheetId>("A3");
+  const [portrait, setPortrait] = useState(false);
   const [marginX, setMarginX] = useState(2);
   const [marginY, setMarginY] = useState(1.5);
   const [allowMixed, setAllowMixed] = useState(false);
@@ -228,21 +229,38 @@ export function ImpositionStudio() {
   const backFileRef = useRef<HTMLInputElement | null>(null);
 
   const sheet = SHEETS[sheetId];
+  const sheetW = portrait ? sheet.h : sheet.w;
+  const sheetH = portrait ? sheet.w : sheet.h;
   const cellW = trimW + 2 * bleed;
   const cellH = trimH + 2 * bleed;
 
   const layout = useMemo(
     () =>
       computeLayout({
-        sheetW: sheet.w,
-        sheetH: sheet.h,
+        sheetW,
+        sheetH,
         cellW,
         cellH,
         marginX,
         marginY,
         allowMixed,
       }),
-    [sheet.w, sheet.h, cellW, cellH, marginX, marginY, allowMixed],
+    [sheetW, sheetH, cellW, cellH, marginX, marginY, allowMixed],
+  );
+
+  /** How many fit if the sheet were turned the other way — shown as a hint. */
+  const altCount = useMemo(
+    () =>
+      computeLayout({
+        sheetW: sheetH,
+        sheetH: sheetW,
+        cellW,
+        cellH,
+        marginX,
+        marginY,
+        allowMixed,
+      }).count,
+    [sheetW, sheetH, cellW, cellH, marginX, marginY, allowMixed],
   );
 
   /** Item index for every physical card, in printing order. */
@@ -333,8 +351,8 @@ export function ImpositionStudio() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const scale = 2.2; // px per mm on screen
-    canvas.width = Math.round(sheet.w * scale);
-    canvas.height = Math.round(sheet.h * scale);
+    canvas.width = Math.round(sheetW * scale);
+    canvas.height = Math.round(sheetH * scale);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -344,7 +362,7 @@ export function ImpositionStudio() {
     const isBack = previewSide === "back";
     const cells =
       isBack && duplex
-        ? mirrorCells(layout.cells, sheet.w, sheet.h, mirrorAxis)
+        ? mirrorCells(layout.cells, sheetW, sheetH, mirrorAxis)
         : layout.cells;
     const seq = filledSequence;
     const maxSheet = Math.max(0, sheetCount - 1);
@@ -402,8 +420,8 @@ export function ImpositionStudio() {
     layout,
     items,
     filledSequence,
-    sheet.w,
-    sheet.h,
+    sheetW,
+    sheetH,
     bleed,
     perSheet,
     sheetCount,
@@ -424,8 +442,8 @@ export function ImpositionStudio() {
       const { PDFDocument, rgb } = await import("pdf-lib");
       const doc = await PDFDocument.create();
       const black = rgb(0, 0, 0);
-      const wPt = sheet.w * MM_TO_PT;
-      const hPt = sheet.h * MM_TO_PT;
+      const wPt = sheetW * MM_TO_PT;
+      const hPt = sheetH * MM_TO_PT;
       const markLen = 1.8 * MM_TO_PT;
       const markOffset = bleed * MM_TO_PT;
 
@@ -521,7 +539,7 @@ export function ImpositionStudio() {
         }
       };
 
-      const backCells = mirrorCells(layout.cells, sheet.w, sheet.h, mirrorAxis);
+      const backCells = mirrorCells(layout.cells, sheetW, sheetH, mirrorAxis);
       for (let s = 0; s < sheetCount; s++) {
         await drawSheet(layout.cells, s * perSheet, "front");
         if (duplex) {
@@ -538,7 +556,7 @@ export function ImpositionStudio() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `raskladka_${trimW}x${trimH}_${sheetId}${duplex ? "_duplex" : ""}.pdf`;
+      a.download = `raskladka_${trimW}x${trimH}_${sheetId}_${portrait ? "vert" : "hor"}${duplex ? "_duplex" : ""}.pdf`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (e) {
@@ -627,10 +645,40 @@ export function ImpositionStudio() {
             >
               {(Object.keys(SHEETS) as SheetId[]).map((id) => (
                 <option key={id} value={id}>
-                  {SHEETS[id].label}
+                  {id}
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <div className={labelCls}>Ориентация</div>
+            <div className="mt-1 inline-flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setPortrait(false)}
+                className={`px-3 py-1.5 text-sm ${
+                  !portrait
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                }`}
+              >
+                Хоризонтален
+              </button>
+              <button
+                type="button"
+                onClick={() => setPortrait(true)}
+                className={`px-3 py-1.5 text-sm ${
+                  portrait
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                }`}
+              >
+                Вертикален
+              </button>
+            </div>
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {sheetW} × {sheetH} мм
+            </div>
           </div>
           <div>
             <div className={labelCls}>Поле X / Y, мм</div>
@@ -849,6 +897,21 @@ export function ImpositionStudio() {
           <span>
             На лист: <b>{layout.count} бр.</b> ({layout.description})
           </span>
+          {altCount !== layout.count && (
+            <button
+              type="button"
+              onClick={() => setPortrait((v) => !v)}
+              className={
+                altCount > layout.count
+                  ? "underline text-green-700 dark:text-green-400"
+                  : "underline text-gray-500 dark:text-gray-400"
+              }
+              title="Превключи ориентацията на листа"
+            >
+              {portrait ? "хоризонтално" : "вертикално"}: {altCount} бр.
+              {altCount > layout.count ? " — по-изгодно" : ""}
+            </button>
+          )}
           <span>
             Общо карти: <b>{sequence.length}</b>
           </span>
