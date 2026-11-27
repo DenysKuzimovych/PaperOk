@@ -4,5 +4,6 @@
       "path": "/api/cron/speedy-sync",
       "schedule": "30 6 * * *"
     }
-  ]
+  ],
+  "installCommand": "pnpm install --no-frozen-lockfile"
 }
