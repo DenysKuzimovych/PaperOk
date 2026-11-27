@@ -2,7 +2,7 @@ export const AI_DESIGN_PRODUCT_ID = "ai-design";
 
 export const AI_MAX_ATTEMPTS = 3;
 /** Max separate designs (cards) per browser before soft limit. */
-export const AI_MAX_DESIGNS = 10;
+export const AI_MAX_DESIGNS = 15;
 /** One visual style at a time so the image model gets a clear direction. */
 export const AI_MAX_STYLES = 1;
 export const AI_IDEA_MAX_CHARS = 500;
