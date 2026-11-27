@@ -58,6 +58,47 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
+function imageFromDataUrl(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Не мога да рендерирам PDF страницата"));
+    img.src = src;
+  });
+}
+
+/** Rasterise the first page of a PDF at ~600 dpi and return it as an image. */
+async function loadPdfFirstPage(file: File): Promise<HTMLImageElement> {
+  const pdfjs: any = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+  const data = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const page = await doc.getPage(1);
+  const base = page.getViewport({ scale: 1 });
+  // base is in CSS points (72 dpi) — scale up to 600 dpi, capped for memory
+  const target = Math.min(600 / 72, 4000 / Math.max(base.width, base.height));
+  const viewport = page.getViewport({ scale: Math.max(1, target) });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas недоступен");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return imageFromDataUrl(canvas.toDataURL("image/png"));
+}
+
+async function loadAny(file: File): Promise<HTMLImageElement> {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    return loadPdfFirstPage(file);
+  }
+  return loadImage(file);
+}
+
 /** Source rectangle for drawing `img` into target w×h with the given fit. */
 function fitRect(
   imgW: number,
@@ -239,11 +280,15 @@ export function ImpositionStudio() {
     try {
       const loaded: Item[] = [];
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) {
-          setError(`„${file.name}“ не е изображение (поддържат се JPG и PNG).`);
+        const isPdf =
+          file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+        if (!file.type.startsWith("image/") && !isPdf) {
+          setError(
+            `„${file.name}“ не се поддържа (приемаме JPG, PNG и PDF).`,
+          );
           continue;
         }
-        const img = await loadImage(file);
+        const img = await loadAny(file);
         loaded.push({
           id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           name: file.name,
@@ -265,7 +310,7 @@ export function ImpositionStudio() {
     const file = files[0];
     if (!file) return;
     try {
-      const img = await loadImage(file);
+      const img = await loadAny(file);
       setItems((prev) =>
         prev.map((it) => (it.id === id ? { ...it, back: img } : it)),
       );
@@ -679,7 +724,7 @@ export function ImpositionStudio() {
             + Добави файлове
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"
               multiple
               className="hidden"
               onChange={(e) => {
@@ -692,7 +737,8 @@ export function ImpositionStudio() {
 
         {items.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Добавете JPG/PNG файлове — всеки файл е отделен дизайн. После задайте
+            Добавете JPG, PNG или PDF — всеки файл е отделен дизайн. При PDF се
+            взема първата страница. После задайте
             брой копия за всеки.
           </p>
         ) : (
@@ -785,7 +831,7 @@ export function ImpositionStudio() {
         <input
           ref={backFileRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"
           className="hidden"
           onChange={(e) => {
             void addBackFile(e.target.files);
