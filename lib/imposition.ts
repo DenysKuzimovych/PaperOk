@@ -30,6 +30,9 @@ export type Layout = {
   description: string;
 };
 
+/** How the card may sit on the sheet. */
+export type CardOrientation = "auto" | "upright" | "rotated";
+
 type LayoutInput = {
   sheetW: number;
   sheetH: number;
@@ -39,6 +42,8 @@ type LayoutInput = {
   marginX: number;
   marginY: number;
   allowMixed: boolean;
+  /** default "auto" — pick whichever fits most */
+  orientation?: CardOrientation;
 };
 
 function buildGrid(
@@ -71,6 +76,7 @@ function boundsOf(cells: Cell[]): { w: number; h: number } {
 
 export function computeLayout(input: LayoutInput): Layout {
   const { sheetW, sheetH, cellW, cellH, marginX, marginY, allowMixed } = input;
+  const orientation: CardOrientation = input.orientation ?? "auto";
   const uw = sheetW - 2 * marginX;
   const uh = sheetH - 2 * marginY;
 
@@ -80,7 +86,7 @@ export function computeLayout(input: LayoutInput): Layout {
   // Plain grids (origin 0,0 inside usable area; centred later)
   const colsA = Math.floor(uw / cellW);
   const rowsA = Math.floor(uh / cellH);
-  if (colsA > 0 && rowsA > 0) {
+  if (orientation !== "rotated" && colsA > 0 && rowsA > 0) {
     candidates.push({
       cells: buildGrid(0, 0, colsA, rowsA, cellW, cellH, false),
       description: `${colsA} × ${rowsA}`,
@@ -88,14 +94,14 @@ export function computeLayout(input: LayoutInput): Layout {
   }
   const colsB = Math.floor(uw / cellH);
   const rowsB = Math.floor(uh / cellW);
-  if (colsB > 0 && rowsB > 0) {
+  if (orientation !== "upright" && colsB > 0 && rowsB > 0) {
     candidates.push({
       cells: buildGrid(0, 0, colsB, rowsB, cellH, cellW, true),
       description: `${colsB} × ${rowsB} (завъртяно)`,
     });
   }
 
-  if (allowMixed) {
+  if (allowMixed && orientation === "auto") {
     // k rows of upright cells on top, leftover strip filled with rotated cells
     for (let k = 1; k <= rowsA; k++) {
       const used = k * cellH;

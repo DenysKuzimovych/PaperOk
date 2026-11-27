@@ -5,6 +5,7 @@ import {
   SHEETS,
   type SheetId,
   type Cell,
+  type CardOrientation,
   computeLayout,
   mirrorCells,
   MM_TO_PT,
@@ -210,6 +211,8 @@ export function ImpositionStudio() {
   const [bleed, setBleed] = useState(2);
   const [sheetId, setSheetId] = useState<SheetId>("A3");
   const [portrait, setPortrait] = useState(false);
+  const [cardOrientation, setCardOrientation] =
+    useState<CardOrientation>("auto");
   const [marginX, setMarginX] = useState(2);
   const [marginY, setMarginY] = useState(1.5);
   const [allowMixed, setAllowMixed] = useState(false);
@@ -244,8 +247,18 @@ export function ImpositionStudio() {
         marginX,
         marginY,
         allowMixed,
+        orientation: cardOrientation,
       }),
-    [sheetW, sheetH, cellW, cellH, marginX, marginY, allowMixed],
+    [
+      sheetW,
+      sheetH,
+      cellW,
+      cellH,
+      marginX,
+      marginY,
+      allowMixed,
+      cardOrientation,
+    ],
   );
 
   /** How many fit if the sheet were turned the other way — shown as a hint. */
@@ -259,9 +272,36 @@ export function ImpositionStudio() {
         marginX,
         marginY,
         allowMixed,
+        orientation: cardOrientation,
       }).count,
-    [sheetW, sheetH, cellW, cellH, marginX, marginY, allowMixed],
+    [
+      sheetW,
+      sheetH,
+      cellW,
+      cellH,
+      marginX,
+      marginY,
+      allowMixed,
+      cardOrientation,
+    ],
   );
+
+  /** Counts per card orientation, to label the buttons. */
+  const orientationCounts = useMemo(() => {
+    const base = {
+      sheetW,
+      sheetH,
+      cellW,
+      cellH,
+      marginX,
+      marginY,
+      allowMixed: false,
+    };
+    return {
+      upright: computeLayout({ ...base, orientation: "upright" }).count,
+      rotated: computeLayout({ ...base, orientation: "rotated" }).count,
+    };
+  }, [sheetW, sheetH, cellW, cellH, marginX, marginY]);
 
   /** Item index for every physical card, in printing order. */
   const sequence = useMemo(() => {
@@ -679,6 +719,24 @@ export function ImpositionStudio() {
             <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {sheetW} × {sheetH} мм
             </div>
+          </div>
+          <div>
+            <div className={labelCls}>Как да стоят картичките</div>
+            <select
+              className="mt-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+              value={cardOrientation}
+              onChange={(e) =>
+                setCardOrientation(e.target.value as CardOrientation)
+              }
+            >
+              <option value="auto">Автоматично (максимум бройки)</option>
+              <option value="upright">
+                Както са зададени ({trimW} × {trimH}) — {orientationCounts.upright} бр.
+              </option>
+              <option value="rotated">
+                Завъртени на 90° ({trimH} × {trimW}) — {orientationCounts.rotated} бр.
+              </option>
+            </select>
           </div>
           <div>
             <div className={labelCls}>Поле X / Y, мм</div>
