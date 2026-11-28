@@ -223,6 +223,7 @@ export function ImpositionStudio() {
   const [rotateBack, setRotateBack] = useState(false);
   const [fillLastSheet, setFillLastSheet] = useState(false);
   const [separateFiles, setSeparateFiles] = useState(false);
+  const [singleSheet, setSingleSheet] = useState(true);
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -304,17 +305,25 @@ export function ImpositionStudio() {
     };
   }, [sheetW, sheetH, cellW, cellH, marginX, marginY]);
 
+  const perSheet = layout.count;
+
   /** Item index for every physical card, in printing order. */
   const sequence = useMemo(() => {
     const seq: number[] = [];
+    if (items.length === 0) return seq;
+    if (singleSheet) {
+      // exactly one sheet, cycling through the designs
+      for (let i = 0; i < perSheet; i++) {
+        seq.push(i % items.length);
+      }
+      return seq;
+    }
     items.forEach((item, idx) => {
       const n = Math.max(0, Math.floor(item.count));
       for (let i = 0; i < n; i++) seq.push(idx);
     });
     return seq;
-  }, [items]);
-
-  const perSheet = layout.count;
+  }, [items, singleSheet, perSheet]);
   const sheetCount = perSheet > 0 ? Math.ceil(sequence.length / perSheet) : 0;
   const emptyCells =
     perSheet > 0 && sequence.length > 0
@@ -610,7 +619,9 @@ export function ImpositionStudio() {
         ];
       } else if (separateFiles) {
         groups = items.map((item, idx) => {
-          const n = Math.max(0, Math.floor(item.count));
+          const n = singleSheet
+            ? perSheet
+            : Math.max(0, Math.floor(item.count));
           const seq = Array.from({ length: n }, () => idx);
           const safe =
             item.name.replace(/\.[^.]+$/, "").replace(/[^\w\-]+/g, "_") ||
@@ -869,6 +880,14 @@ export function ImpositionStudio() {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
+              checked={singleSheet}
+              onChange={(e) => setSingleSheet(e.target.checked)}
+            />
+            Само един лист (тиражът се задава на принтера)
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
               checked={separateFiles}
               onChange={(e) => setSeparateFiles(e.target.checked)}
             />
@@ -967,20 +986,22 @@ export function ImpositionStudio() {
                       )}
                     </div>
                   </div>
-                  <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                    Брой
-                    <input
-                      type="number"
-                      min={1}
-                      className="w-20 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-white"
-                      value={item.count}
-                      onChange={(e) =>
-                        updateItem(item.id, {
-                          count: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                    />
-                  </label>
+                  {!singleSheet && (
+                    <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                      Брой
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-20 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-white"
+                        value={item.count}
+                        onChange={(e) =>
+                          updateItem(item.id, {
+                            count: Math.max(1, Number(e.target.value) || 1),
+                          })
+                        }
+                      />
+                    </label>
+                  )}
                   <select
                     className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-white"
                     value={item.fit}
@@ -1058,8 +1079,9 @@ export function ImpositionStudio() {
           <span>
             Листове: <b>{sheetCount}</b>
             {duplex ? " × 2 страници" : ""}
+            {singleSheet && sheetCount > 0 ? " — тиражът на принтера" : ""}
           </span>
-          {emptyCells > 0 && (
+          {!singleSheet && emptyCells > 0 && (
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -1129,6 +1151,7 @@ export function ImpositionStudio() {
               {duplex
                 ? "Ще се свалят 2 файла: _LICE и _GRAB"
                 : `Ще се свалят ${items.length} файла — по един за всеки дизайн`}
+              {singleSheet ? ", по 1 страница" : ""}
             </span>
           )}
         </div>
