@@ -222,6 +222,7 @@ export function ImpositionStudio() {
   const [mirrorAxis, setMirrorAxis] = useState<"x" | "y">("x");
   const [rotateBack, setRotateBack] = useState(false);
   const [fillLastSheet, setFillLastSheet] = useState(false);
+  const [separateFiles, setSeparateFiles] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -480,16 +481,17 @@ export function ImpositionStudio() {
     setError(null);
     try {
       const { PDFDocument, rgb } = await import("pdf-lib");
-      const doc = await PDFDocument.create();
+      type Doc = Awaited<ReturnType<typeof PDFDocument.create>>;
+      type Embedded = Awaited<ReturnType<Doc["embedJpg"]>>;
       const black = rgb(0, 0, 0);
       const wPt = sheetW * MM_TO_PT;
       const hPt = sheetH * MM_TO_PT;
       const markLen = 1.8 * MM_TO_PT;
       const markOffset = bleed * MM_TO_PT;
 
-      const imageCache = new Map<string, Awaited<ReturnType<typeof doc.embedJpg>>>();
-
       const getEmbedded = async (
+        doc: Doc,
+        imageCache: Map<string, Embedded>,
         item: Item,
         side: "front" | "back",
         rotated: boolean,
@@ -514,15 +516,17 @@ export function ImpositionStudio() {
       };
 
       const drawSheet = async (
+        doc: Doc,
+        imageCache: Map<string, Embedded>,
         cells: Cell[],
-        seqStart: number,
+        sheetItems: number[],
         side: "front" | "back",
       ) => {
         const page = doc.addPage([wPt, hPt]);
         for (let i = 0; i < cells.length; i++) {
           const cell = cells[i];
           if (!cell) continue;
-          const itemIdx = filledSequence[seqStart + i];
+          const itemIdx = sheetItems[i];
           const item = itemIdx !== undefined ? items[itemIdx] : undefined;
           const x = cell.x * MM_TO_PT;
           const yTop = cell.y * MM_TO_PT;
@@ -531,7 +535,13 @@ export function ImpositionStudio() {
           const y = hPt - yTop - h;
 
           if (item) {
-            const embedded = await getEmbedded(item, side, cell.rotated);
+            const embedded = await getEmbedded(
+              doc,
+              imageCache,
+              item,
+              side,
+              cell.rotated,
+            );
             if (embedded) {
               page.drawImage(embedded, { x, y, width: w, height: h });
             }
@@ -580,25 +590,87 @@ export function ImpositionStudio() {
       };
 
       const backCells = mirrorCells(layout.cells, sheetW, sheetH, mirrorAxis);
-      for (let s = 0; s < sheetCount; s++) {
-        await drawSheet(layout.cells, s * perSheet, "front");
-        if (duplex) {
-          await drawSheet(backCells, s * perSheet, "back");
+
+      /** Groups of sheets; each group becomes one downloaded file. */
+      type Group = { suffix: string; sheets: number[][] };
+      const chunk = (seq: number[]): number[][] => {
+        const out: number[][] = [];
+        for (let i = 0; i < seq.length; i += perSheet) {
+          out.push(seq.slice(i, i + perSheet));
         }
+        return out;
+      };
+
+      let groups: Group[];
+      if (separateFiles && duplex) {
+        const sheets = chunk(filledSequence);
+        groups = [
+          { suffix: "_LICE", sheets },
+          { suffix: "_GRAB", sheets },
+        ];
+      } else if (separateFiles) {
+        groups = items.map((item, idx) => {
+          const n = Math.max(0, Math.floor(item.count));
+          const seq = Array.from({ length: n }, () => idx);
+          const safe =
+            item.name.replace(/\.[^.]+$/, "").replace(/[^\w\-]+/g, "_") ||
+            `dizain_${idx + 1}`;
+          return { suffix: `_${safe}`, sheets: chunk(seq) };
+        });
+      } else {
+        groups = [{ suffix: "", sheets: chunk(filledSequence) }];
       }
 
-      const bytes = await doc.save();
-      const buffer = bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength,
-      ) as ArrayBuffer;
-      const blob = new Blob([buffer], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `raskladka_${trimW}x${trimH}_${sheetId}_${portrait ? "vert" : "hor"}${duplex ? "_duplex" : ""}.pdf`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      const baseName = `raskladka_${trimW}x${trimH}_${sheetId}_${
+        portrait ? "vert" : "hor"
+      }`;
+
+      for (let g = 0; g < groups.length; g++) {
+        const group = groups[g];
+        if (!group || group.sheets.length === 0) continue;
+        const isBackFile = separateFiles && duplex && group.suffix === "_GRAB";
+        const doc = await PDFDocument.create();
+        const imageCache = new Map<
+          string,
+          Awaited<ReturnType<typeof doc.embedJpg>>
+        >();
+
+        for (const sheetItems of group.sheets) {
+          if (separateFiles && duplex) {
+            await drawSheet(
+              doc,
+              imageCache,
+              isBackFile ? backCells : layout.cells,
+              sheetItems,
+              isBackFile ? "back" : "front",
+            );
+          } else {
+            await drawSheet(doc, imageCache, layout.cells, sheetItems, "front");
+            if (duplex) {
+              await drawSheet(doc, imageCache, backCells, sheetItems, "back");
+            }
+          }
+        }
+
+        const bytes = await doc.save();
+        const buffer = bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer;
+        const blob = new Blob([buffer], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${baseName}${group.suffix}${
+          duplex && !separateFiles ? "_duplex" : ""
+        }.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+        // browsers drop rapid-fire downloads; give each one a moment
+        if (g < groups.length - 1) {
+          await new Promise((r) => setTimeout(r, 700));
+        }
+      }
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : "Грешка при генериране на PDF");
@@ -793,6 +865,16 @@ export function ImpositionStudio() {
               onChange={(e) => setDuplex(e.target.checked)}
             />
             Двустранен печат
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={separateFiles}
+              onChange={(e) => setSeparateFiles(e.target.checked)}
+            />
+            {duplex
+              ? "Отделни файлове за лице и гръб"
+              : "Отделен файл за всеки дизайн"}
           </label>
           {duplex && (
             <>
@@ -1033,14 +1115,23 @@ export function ImpositionStudio() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="button"
-          disabled={busy || sheetCount === 0}
-          onClick={() => void generatePdf()}
-          className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? "Генерирам…" : "Генерирай PDF"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={busy || sheetCount === 0}
+            onClick={() => void generatePdf()}
+            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? "Генерирам…" : "Генерирай PDF"}
+          </button>
+          {separateFiles && sheetCount > 0 && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {duplex
+                ? "Ще се свалят 2 файла: _LICE и _GRAB"
+                : `Ще се свалят ${items.length} файла — по един за всеки дизайн`}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
