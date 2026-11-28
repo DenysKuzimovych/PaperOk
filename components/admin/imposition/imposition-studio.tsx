@@ -24,6 +24,8 @@ type Item = {
   back: HTMLImageElement | null;
   count: number;
   fit: FitMode;
+  /** turn this design upside down on the sheet */
+  flip: boolean;
 };
 
 const PRESETS: Array<{ label: string; w: number; h: number }> = [
@@ -364,6 +366,7 @@ export function ImpositionStudio() {
           back: null,
           count: 1,
           fit: "cover",
+          flip: false,
         });
       }
       if (loaded.length > 0) setItems((prev) => [...prev, ...loaded]);
@@ -430,7 +433,10 @@ export function ImpositionStudio() {
       if (item) {
         const src = isBack ? item.back : item.img;
         if (src) {
-          const angle = (cell.rotated ? 90 : 0) + (isBack && rotateBack ? 180 : 0);
+          const angle =
+            (cell.rotated ? 90 : 0) +
+            (item.flip ? 180 : 0) +
+            (isBack && rotateBack ? 180 : 0);
           try {
             const cellCanvas = renderCellCanvas(
               src,
@@ -507,7 +513,10 @@ export function ImpositionStudio() {
       ) => {
         const src = side === "back" ? item.back : item.img;
         if (!src) return null;
-        const angle = (rotated ? 90 : 0) + (side === "back" && rotateBack ? 180 : 0);
+        const angle =
+          (rotated ? 90 : 0) +
+          (item.flip ? 180 : 0) +
+          (side === "back" && rotateBack ? 180 : 0);
         const key = `${item.id}|${side}|${angle}|${item.fit}|${cellW}x${cellH}`;
         const cached = imageCache.get(key);
         if (cached) return cached;
@@ -914,7 +923,7 @@ export function ImpositionStudio() {
                   checked={rotateBack}
                   onChange={(e) => setRotateBack(e.target.checked)}
                 />
-                Завърти гърба на 180°
+                Завърти само гърба на 180°
               </label>
             </>
           )}
@@ -1012,6 +1021,18 @@ export function ImpositionStudio() {
                     <option value="cover">запълни (изрязва)</option>
                     <option value="contain">побери (с полета)</option>
                   </select>
+                  <button
+                    type="button"
+                    title="Завърти дизайна на 180°"
+                    onClick={() => updateItem(item.id, { flip: !item.flip })}
+                    className={`rounded-md border px-2 py-1 text-xs ${
+                      item.flip
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    ↻ 180°
+                  </button>
                   {duplex && (
                     <button
                       type="button"
